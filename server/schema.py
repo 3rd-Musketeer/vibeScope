@@ -45,33 +45,67 @@ class ProjectStatsResponse(BaseModel):
     processing_time_seconds: int = Field(description="Total processing time excluding wait time")
 
 class RedNoteCommentSchema(BaseModel):
-    comment: str = Field(description="Comment of the note")
-    reply_to_comment: str = Field(description="First reply to the comment")
+    comment: str = Field(default="", description="Comment of the note")
+    reply_to_comment: str = Field(default="", description="First reply to the comment")
 
 class RedNoteSchema(BaseModel):
-    title: str = Field(description="Title of the note")
-    content: str = Field(description="Content of the note by the author")
-    tags: list[str] = Field(description="Tag words of the note, without `#`")
-    date: str = Field(description="Date of the note")
+    title: str = Field(default="", description="Title of the note")
+    content: str = Field(default="", description="Content of the note by the author")
+    tags: list[str] = Field(default_factory=list, description="Tag words of the note, without `#`")
+    date: str = Field(default="", description="Date of the note")
     like_count: int = Field(default=0, description="Like count of the note")
     comment_count: int = Field(default=0, description="Comment count of the note")
     favorite_count: int = Field(default=0, description="Favorite count of the note")
-    location: str = Field(description="IP location of the note")
-    image_urls: list[str] = Field(description="Image urls in main body")
-    video_urls: list[str] = Field(description="Video urls in main body")
-    author_name: str = Field(description="Author name")
-    author_avatar_url: str = Field(description="Author avatar url")
-    author_profile_url: str = Field(description="Author profile url")
-    comments: list[RedNoteCommentSchema] = Field(description="Comments of the note")
+    location: str = Field(default="未知", description="IP location of the note")
+    image_urls: list[str] = Field(default_factory=list, description="Image urls in main body")
+    video_urls: list[str] = Field(default_factory=list, description="Video urls in main body")
+    author_name: str = Field(default="", description="Author name")
+    author_avatar_url: str = Field(default="", description="Author avatar url")
+    author_profile_url: str = Field(default="", description="Author profile url")
+    comments: list[RedNoteCommentSchema] = Field(default_factory=list, description="Comments of the note")
 
 class RedNoteUserProfileSchema(BaseModel):
-    location: str = Field(description="IP location of the user")
-    author_name: str = Field(description="Author name")
-    author_avatar_url: str = Field(description="Author avatar url")
-    introduction: str = Field(description="Introduction of the user")
-    related_topics: list[str] = Field(description="Related topics of the user, at most 3")
-    interests: list[str] = Field(description="Interests of the user, at most 3")
-    career: str = Field(description="Inferred career of the user")
+    location: str = Field(default="未知", description="IP location of the user")
+    author_name: str = Field(default="", description="Author name")
+    author_avatar_url: str = Field(default="", description="Author avatar url")
+    introduction: str = Field(default="", description="Introduction of the user")
+    related_topics: list[str] = Field(default_factory=list, description="Related topics of the user, at most 3")
+    interests: list[str] = Field(default_factory=list, description="Interests of the user, at most 3")
+    career: str = Field(default="未知", description="Inferred career of the user")
+
+# New extraction pipeline schemas
+class BaseContentModel(BaseModel):
+    title: str = Field(default="", description="Title of the post")
+    content: str = Field(default="", description="Main content of the post, in markdown format, excluding urls.")
+    author_name: str = Field(default="", description="Author name")
+    publish_date: str = Field(default="", description="Publish date of the post")
+
+class LinksModel(BaseModel):
+    author_avatar_url: str = Field(default="", description="Author avatar url")
+    author_profile_url: str = Field(default="", description="Author profile url")
+    image_urls: list[str] = Field(default_factory=list, description="Image urls in the post")
+
+class MetadataModel(BaseModel):
+    tags: list[str] = Field(default_factory=list, description="Tag words of the post, without `#`")
+    like_count: int = Field(default=0, description="Like count of the post")
+    comment_count: int = Field(default=0, description="Comment count of the post")
+    favorite_count: int = Field(default=0, description="Favorite count of the post")
+    location: str = Field(default="未知", description="IP location of the post")
+
+class CommentsModel(BaseModel):
+    comment_content: str = Field(default="", description="Comment content")
+    comment_author_name: str = Field(default="", description="Comment author name")
+    comment_publish_date: str = Field(default="", description="Comment publish date")
+    first_reply_to_comment: str = Field(default="", description="First reply to the comment")
+
+class AuthorProfileModel(BaseModel):
+    author_name: str = Field(default="", description="Author name")
+    location: str = Field(default="未知", description="IP location of the user")
+    author_avatar_url: str = Field(default="", description="Author avatar url")
+    introduction: str = Field(default="", description="Introduction of the user")
+    related_topics: list[str] = Field(default_factory=list, description="Related topics of the user, at most 3")
+    interests: list[str] = Field(default_factory=list, description="Interests of the user, at most 3")
+    careers: list[str] = Field(default_factory=list, description="Inferred career of the user")
 
 class RedNoteDBSchema(BaseModel):
     id: str = Field(description="Unique note identifier")

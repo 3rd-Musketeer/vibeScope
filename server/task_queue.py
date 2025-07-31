@@ -21,6 +21,10 @@ class TaskQueue:
         if not task.get("url") and not task.get("html"):
             raise ValueError("either url or html is required")
         
+        # New validation for extension mode: if html is provided, url should also be provided for base URL extraction
+        if task.get("html") and not task.get("url"):
+            raise ValueError("url is required when html is provided for base URL extraction")
+        
         task["status"] = "pending"
         task["created_at"] = datetime.now()
         task["updated_at"] = datetime.now()
