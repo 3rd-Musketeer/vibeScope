@@ -5,44 +5,11 @@ from urllib.parse import urljoin, urlparse
 from typing import Dict, Any, Optional
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, BrowserConfig, CacheMode
 import instructor
-from pydantic import BaseModel, Field
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
+from data_schema import BaseContentModel, LinksModel, MetadataModel, CommentsModel, AuthorProfileModel
 
 load_dotenv()
-
-class BaseContentModel(BaseModel):
-    title: str = Field(default="", description="Title of the post")
-    content: str = Field(default="", description="Main content of the post, in markdown format, excluding urls.")
-    author_name: str = Field(default="", description="Author name")
-    publish_date: str = Field(default="", description="Publish date of the post")
-
-class LinksModel(BaseModel):
-    author_avatar_url: str = Field(default="", description="Author avatar url")
-    author_profile_url: str = Field(default="", description="Author profile url")
-    image_urls: list[str] = Field(default_factory=list, description="Image urls in the post")
-
-class MetadataModel(BaseModel):
-    tags: list[str] = Field(default_factory=list, description="Tag words of the post, without `#`")
-    like_count: int = Field(default=0, description="Like count of the post")
-    comment_count: int = Field(default=0, description="Comment count of the post")
-    favorite_count: int = Field(default=0, description="Favorite count of the post")
-    location: str = Field(default="未知", description="IP location of the main post")
-
-class CommentsModel(BaseModel):
-    comment_content: str = Field(default="", description="Comment content")
-    comment_author_name: str = Field(default="", description="Comment author name")
-    comment_publish_date: str = Field(default="", description="Comment publish date")
-    first_reply_to_comment: str = Field(default="", description="First reply to the comment")
-
-class AuthorProfileModel(BaseModel):
-    author_name: str = Field(default="", description="Author name")
-    location: str = Field(default="未知", description="IP location of the user")
-    author_avatar_url: str = Field(default="", description="Author avatar url")
-    introduction: str = Field(default="", description="Introduction of the user")
-    related_topics: list[str] = Field(default_factory=list, description="Related topics of the user, at most 3")
-    interests: list[str] = Field(default_factory=list, description="Interests of the user, at most 3")
-    careers: list[str] = Field(default_factory=list, description="Inferred career of the user")
 
 class InstructorExtractor:
     def __init__(self):

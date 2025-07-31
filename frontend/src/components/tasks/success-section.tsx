@@ -20,10 +20,10 @@ export function SuccessSection() {
     // Client-side search since backend RAG search endpoint is not implemented yet
     const query = searchQuery.toLowerCase()
     return successfulTasks.filter(task => 
-      task.note_content.title.toLowerCase().includes(query) ||
-      task.note_content.content.toLowerCase().includes(query) ||
-      task.note_content.tags.some(tag => tag.toLowerCase().includes(query)) ||
-      task.user_profile.author_name.toLowerCase().includes(query)
+      task.base_content.title.toLowerCase().includes(query) ||
+      task.base_content.content.toLowerCase().includes(query) ||
+      task.metadata.tags.some(tag => tag.toLowerCase().includes(query)) ||
+      task.author_profile.author_name.toLowerCase().includes(query)
     )
   }, [successfulTasks, searchQuery])
 
@@ -75,7 +75,7 @@ export function SuccessSection() {
                       {/* 标题和链接 */}
                       <div className="flex items-start justify-between">
                         <h3 className="font-medium text-sm line-clamp-2">
-                          {task.note_content.title}
+                          {task.base_content.title}
                         </h3>
                         <ExternalLink className="w-3 h-3 text-muted-foreground flex-shrink-0 ml-2" />
                       </div>
@@ -92,14 +92,14 @@ export function SuccessSection() {
                       {/* 作者信息 */}
                       <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                         <User className="w-3 h-3" />
-                        <span>{task.user_profile.author_name}</span>
+                        <span>{task.author_profile.author_name}</span>
                         <span>•</span>
-                        <span>{task.note_content.like_count} 赞</span>
+                        <span>{task.metadata.like_count} 赞</span>
                       </div>
                       
                       {/* 内容预览 */}
                       <p className="text-xs text-muted-foreground line-clamp-2">
-                        {task.note_content.content}
+                        {task.base_content.content}
                       </p>
                     </div>
                   </CardContent>

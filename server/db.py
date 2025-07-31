@@ -3,7 +3,8 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 import json
 import os
-from schema import ProjectSchema, RedNoteDBSchema
+from api_schema import ProjectSchema
+from data_schema import DBSchema
 
 def init_db() -> None:
     os.makedirs('data', exist_ok=True)
@@ -33,21 +34,32 @@ def get_projects() -> List[Dict[str, Any]]:
     db.close()
     return projects
 
-def save_successful_task(task: Dict[str, Any]) -> None:
-    if not task.get("id"):
-        raise ValueError("task id is required")
-    if not task.get("note_content"):
-        raise ValueError("note_content is required for successful tasks")
-    if not task.get("user_profile"):
-        raise ValueError("user_profile is required for successful tasks")
+def save_successful_task(task_data) -> None:
+    """Save successful task with DBSchema validation"""
     
-    try:
-        RedNoteDBSchema(**task)
-    except Exception as e:
-        raise ValueError(f"task data does not match RedNoteDBSchema: {e}")
+    # Handle both dict and DBSchema input
+    if isinstance(task_data, DBSchema):
+        db_record = task_data
+        # Convert DBSchema to dict for TinyDB storage
+        task_dict = db_record.model_dump(mode='json')
+        # Convert datetime to ISO string for JSON serialization
+        if isinstance(task_dict.get('created_at'), datetime):
+            task_dict['created_at'] = task_dict['created_at'].isoformat()
+        elif hasattr(task_dict.get('created_at'), 'isoformat'):
+            task_dict['created_at'] = task_dict['created_at'].isoformat()
+    else:
+        # Legacy dict format - validate with DBSchema
+        try:
+            db_record = DBSchema(**task_data)
+            task_dict = task_data
+        except Exception as e:
+            raise ValueError(f"task data does not match DBSchema: {e}")
+    
+    if not task_dict.get("id"):
+        raise ValueError("task id is required")
     
     db = TinyDB('data/crawled_data.json')
-    db.insert(task)
+    db.insert(task_dict)
     db.close()
 
 def get_successful_tasks_by_project(project_id: str) -> List[Dict[str, Any]]:
@@ -151,41 +163,46 @@ if __name__ == "__main__":
     assert projects[0]["id"] == "test-project-123"
     print("✓ Project retrieval verified")
     
-    test_task = {
-        "id": str(uuid.uuid4()),
-        "url": "https://xiaohongshu.com/item/123",
-        "html": None,
-        "project_id": "test-project-123",
-        "note_content": {
-            "title": "Test Note",
-            "content": "Test content",
-            "tags": ["test"],
-            "date": "2024-01-01",
-            "like_count": 100,
-            "comment_count": 5,
-            "favorite_count": 20,
-            "location": "北京",
-            "image_urls": ["https://example.com/image1.jpg"],
-            "video_urls": [],
-            "author_name": "Test Author",
-            "author_avatar_url": "https://example.com/avatar.jpg",
-            "author_profile_url": "https://example.com/profile",
-            "comments": []
-        },
-        "user_profile": {
-            "location": "北京",
-            "author_name": "Test Author",
-            "author_avatar_url": "https://example.com/avatar.jpg",
-            "introduction": "Test user",
-            "related_topics": ["AI", "Tech"],
-            "interests": ["Programming"],
-            "career": "Engineer"
-        },
-        "image_base64": ["base64encodedimage"],
-        "token_usage": 1000,
-        "created_at": datetime.now().isoformat(),
-        "processing_time_seconds": 30
-    }
+    from data_schema import BaseContentModel, LinksModel, MetadataModel, CommentsModel, AuthorProfileModel
+    
+    test_task = DBSchema(
+        id=str(uuid.uuid4()),
+        project_id="test-project-123",
+        url="https://xiaohongshu.com/item/123",
+        html=None,
+        base_content=BaseContentModel(
+            title="Test Note",
+            content="Test content",
+            author_name="Test Author",
+            publish_date="2024-01-01"
+        ),
+        links=LinksModel(
+            author_avatar_url="https://example.com/avatar.jpg",
+            author_profile_url="https://example.com/profile",
+            image_urls=["https://example.com/image1.jpg"]
+        ),
+        metadata=MetadataModel(
+            tags=["test"],
+            like_count=100,
+            comment_count=5,
+            favorite_count=20,
+            location="北京"
+        ),
+        comments=[],
+        author_profile=AuthorProfileModel(
+            author_name="Test Author",
+            location="北京",
+            author_avatar_url="https://example.com/avatar.jpg",
+            introduction="Test user",
+            related_topics=["AI", "Tech"],
+            interests=["Programming"],
+            careers=["Engineer"]
+        ),
+        image_assets=["asset-uuid-123"],
+        token_usage=1000,
+        created_at=datetime.now(),
+        processing_time_seconds=30
+    )
     
     save_successful_task(test_task)
     print("✓ Successful task saved")
@@ -195,7 +212,7 @@ if __name__ == "__main__":
     if len(tasks) == 0:
         print("WARNING: No tasks found - project_id mismatch")
     else:
-        assert tasks[0]["id"] == test_task["id"]
+        assert tasks[0]["id"] == test_task.id
         print("✓ Task retrieval verified")
     
     stats = get_project_stats("test-project-123")

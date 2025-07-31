@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { QUERY_KEYS, POLLING_INTERVAL } from '@/lib/constants'
-import { TaskCreateRequest } from '@/lib/types'
+import type { TaskCreateRequest } from '@/lib/types'
 
 export function useTasks(projectId: string | null, status?: string) {
   return useQuery({
@@ -42,13 +42,13 @@ export function useRetryTask() {
       
       queryClient.setQueriesData(
         { queryKey: QUERY_KEYS.TASKS },
-        (old: any) => {
+        (old: unknown) => {
           if (!old) return old
-          return old.map((task: any) => 
+          return Array.isArray(old) ? old.map((task: any) => 
             task.id === taskId 
               ? { ...task, status: 'pending', error_msg: null }
               : task
-          )
+          ) : old
         }
       )
       
@@ -82,7 +82,7 @@ export function useDeleteTask() {
       
       queryClient.setQueriesData(
         { queryKey: QUERY_KEYS.TASKS },
-        (old: any) => old?.filter((task: any) => task.id !== taskId)
+        (old: unknown) => Array.isArray(old) ? old.filter((task: { id: string }) => task.id !== taskId) : old
       )
       
       return { previousTasks }
@@ -112,6 +112,16 @@ export function useQueueStatus() {
 export function useSuccessfulTasks(projectId: string | null) {
   return useQuery({
     queryKey: [...QUERY_KEYS.TASKS, projectId, 'successful'],
+    queryFn: () => api.getExtractedContent(projectId!),
+    enabled: !!projectId,
+    refetchInterval: POLLING_INTERVAL
+  })
+}
+
+// Legacy hook for backward compatibility
+export function useSuccessfulTasksLegacy(projectId: string | null) {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.TASKS, projectId, 'successful-legacy'],
     queryFn: () => api.getSuccessfulTasks(projectId!),
     enabled: !!projectId,
     refetchInterval: POLLING_INTERVAL

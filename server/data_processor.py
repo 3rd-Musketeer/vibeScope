@@ -4,6 +4,7 @@ from datetime import datetime
 
 from extractor import extract_note_content, extract_user_profile
 from asset_manager import AssetManager
+from data_schema import DBSchema, BaseContentModel, LinksModel, MetadataModel, CommentsModel, AuthorProfileModel
 
 
 async def extract_raw_content(task_url: str = None, task_html: str = None) -> dict:
@@ -101,23 +102,75 @@ async def process_image_assets(image_urls: List[str]) -> List[str]:
     return await asset_manager.download_and_process_images(image_urls)
 
 
-def format_database_record(clean_note: dict, user_profile: dict, image_assets: List[str], task_data: dict, processing_time: int) -> dict:
-    """Format clean data into database record structure"""
-    return {
-        "id": task_data["id"],
-        "project_id": task_data["project_id"],
-        "url": task_data.get("url"),
-        "html": task_data.get("html"),
-        "note_content": clean_note,
-        "user_profile": user_profile,
-        "image_assets": image_assets,
-        "token_usage": 0,
-        "created_at": datetime.now().isoformat(),
-        "processing_time_seconds": processing_time
-    }
+def format_database_record(clean_note: dict, user_profile: dict, image_assets: List[str], task_data: dict, processing_time: int) -> DBSchema:
+    """Format clean data into DBSchema component assembly structure"""
+    
+    # Extract base content
+    base_content = BaseContentModel(
+        title=clean_note.get("title", ""),
+        content=clean_note.get("content", ""),
+        author_name=clean_note.get("author_name", ""),
+        publish_date=clean_note.get("date", "")
+    )
+    
+    # Extract links
+    links = LinksModel(
+        author_avatar_url=clean_note.get("author_avatar_url", ""),
+        author_profile_url=clean_note.get("author_profile_url", ""),
+        image_urls=clean_note.get("image_urls", [])
+    )
+    
+    # Extract metadata
+    metadata = MetadataModel(
+        tags=clean_note.get("tags", []),
+        like_count=clean_note.get("like_count", 0),
+        comment_count=clean_note.get("comment_count", 0),
+        favorite_count=clean_note.get("favorite_count", 0),
+        location=clean_note.get("location", "未知")
+    )
+    
+    # Extract comments
+    comments = []
+    if clean_note.get("comments"):  
+        for comment_data in clean_note["comments"]:
+            comment = CommentsModel(
+                comment_content=comment_data.get("comment", ""),
+                comment_author_name=comment_data.get("comment_author_name", ""),
+                comment_publish_date=comment_data.get("comment_publish_date", ""),
+                first_reply_to_comment=comment_data.get("reply_to_comment", "")
+            )
+            comments.append(comment)
+    
+    # Extract author profile  
+    author_profile = AuthorProfileModel(
+        author_name=user_profile.get("author_name", ""),
+        location=user_profile.get("location", "未知"),
+        author_avatar_url=user_profile.get("author_avatar_url", ""),
+        introduction=user_profile.get("introduction", ""),
+        related_topics=user_profile.get("related_topics", []),
+        interests=user_profile.get("interests", []),
+        careers=[user_profile.get("career", "")] if user_profile.get("career") else []
+    )
+    
+    # Assemble DBSchema
+    return DBSchema(
+        id=task_data["id"],
+        project_id=task_data["project_id"],
+        url=task_data.get("url"),
+        html=task_data.get("html"),
+        base_content=base_content,
+        links=links,
+        metadata=metadata,
+        comments=comments,
+        author_profile=author_profile,
+        image_assets=image_assets,
+        token_usage=0,
+        created_at=datetime.now(),
+        processing_time_seconds=processing_time
+    )
 
 
-async def process_task_to_database(task_data: dict) -> dict:
+async def process_task_to_database(task_data: dict) -> DBSchema:
     """Complete processing pipeline: extract -> transform -> prepare for load"""
     if not task_data:
         raise ValueError("task_data is required")
@@ -192,6 +245,27 @@ if __name__ == "__main__":
         profile = await extract_user_profile_safe("")
         assert profile["author_name"] == "未知"
         print("✓ User profile fallback working")
+        
+        # Test DBSchema assembly
+        test_task_data = {
+            "id": "test-123",
+            "project_id": "test-project",
+            "url": "https://example.com/test"
+        }
+        
+        db_record = format_database_record(
+            clean_note=clean_data,
+            user_profile=profile,
+            image_assets=["asset-123"],
+            task_data=test_task_data,
+            processing_time=30
+        )
+        
+        assert isinstance(db_record, DBSchema)
+        assert db_record.base_content.title == "未知标题"
+        assert db_record.author_profile.author_name == "未知"
+        assert len(db_record.image_assets) == 1
+        print("✓ DBSchema assembly working")
         
         print("All data processor tests passed!")
     

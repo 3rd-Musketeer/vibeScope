@@ -5,7 +5,7 @@ from typing import Dict, List, Any, Optional
 import uuid
 from datetime import datetime
 
-from schema import TaskCreateRequest, TaskResponse, ProjectSchema, ProjectStatsResponse, ProjectCreateRequest
+from api_schema import TaskCreateRequest, TaskResponse, ProjectSchema, ProjectStatsResponse, ProjectCreateRequest, ExtractedContentResponse
 from db import init_db, save_project, get_projects, get_successful_tasks_by_project, get_project_stats, export_project_data, delete_project_data
 from task_queue import TaskQueue
 
@@ -64,14 +64,19 @@ async def get_tasks_by_project(
     successful_tasks = get_successful_tasks_by_project(project_id)
     success_responses = []
     for task in successful_tasks:
+        # Handle both old and new datetime formats
+        created_at = task["created_at"]
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
+        
         success_response = TaskResponse(
             id=task["id"],
             project_id=project_id,
             url=task.get("url", ""),
             html=task.get("html"),
             status="success",
-            created_at=datetime.fromisoformat(task["created_at"]),
-            updated_at=datetime.fromisoformat(task["created_at"]),
+            created_at=created_at,
+            updated_at=created_at,
             error_msg=None
         )
         success_responses.append(success_response)
@@ -174,6 +179,90 @@ async def delete_project(project_id: str) -> Dict[str, str]:
         return {"message": f"project {project_id} deleted successfully"}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+@app.get("/projects/{project_id}/content", response_model=List[ExtractedContentResponse])
+async def get_extracted_content(project_id: str) -> List[ExtractedContentResponse]:
+    """Get extracted content for a project with full nested structure"""
+    if not project_id:
+        raise HTTPException(status_code=400, detail="project_id is required")
+    
+    successful_tasks = get_successful_tasks_by_project(project_id)
+    content_responses = []
+    
+    for task in successful_tasks:
+        # Transform database record to API response
+        try:
+            # Handle both old flat format and new DBSchema format
+            if "base_content" in task:
+                # New DBSchema format - direct transformation
+                from data_schema import DBSchema
+                # Convert datetime string back to datetime object if needed
+                if isinstance(task.get("created_at"), str):
+                    task["created_at"] = datetime.fromisoformat(task["created_at"])
+                
+                db_record = DBSchema(**task)
+                content_response = ExtractedContentResponse.from_db_schema(db_record)
+            else:
+                # Legacy flat format - convert to new structure
+                from data_schema import BaseContentModel, LinksModel, MetadataModel, CommentsModel, AuthorProfileModel
+                
+                note_content = task.get("note_content", {})
+                user_profile = task.get("user_profile", {})
+                
+                content_response = ExtractedContentResponse(
+                    id=task["id"],
+                    project_id=task["project_id"],
+                    url=task.get("url"),
+                    html=task.get("html"),
+                    base_content=BaseContentModel(
+                        title=note_content.get("title", ""),
+                        content=note_content.get("content", ""),
+                        author_name=note_content.get("author_name", ""),
+                        publish_date=note_content.get("date", "")
+                    ),
+                    links=LinksModel(
+                        author_avatar_url=note_content.get("author_avatar_url", ""),
+                        author_profile_url=note_content.get("author_profile_url", ""),
+                        image_urls=note_content.get("image_urls", [])
+                    ),
+                    metadata=MetadataModel(
+                        tags=note_content.get("tags", []),
+                        like_count=note_content.get("like_count", 0),
+                        comment_count=note_content.get("comment_count", 0),
+                        favorite_count=note_content.get("favorite_count", 0),
+                        location=note_content.get("location", "未知")
+                    ),
+                    comments=[
+                        CommentsModel(
+                            comment_content=c.get("comment", ""),
+                            comment_author_name=c.get("comment_author_name", ""),
+                            comment_publish_date=c.get("comment_publish_date", ""),
+                            first_reply_to_comment=c.get("reply_to_comment", "")
+                        ) for c in note_content.get("comments", [])
+                    ],
+                    author_profile=AuthorProfileModel(
+                        author_name=user_profile.get("author_name", ""),
+                        location=user_profile.get("location", "未知"),
+                        author_avatar_url=user_profile.get("author_avatar_url", ""),
+                        introduction=user_profile.get("introduction", ""),
+                        related_topics=user_profile.get("related_topics", []),
+                        interests=user_profile.get("interests", []),
+                        careers=[user_profile.get("career", "")] if user_profile.get("career") else []
+                    ),
+                    image_assets=task.get("image_assets", []),
+                    token_usage=task.get("token_usage", 0),
+                    created_at=datetime.fromisoformat(task["created_at"]) if isinstance(task["created_at"], str) else task["created_at"],
+                    processing_time_seconds=task.get("processing_time_seconds", 0)
+                )
+            
+            content_responses.append(content_response)
+            
+        except Exception as e:
+            # Skip malformed records and continue
+            print(f"Warning: Skipping malformed record {task.get('id', 'unknown')}: {e}")
+            continue
+    
+    return content_responses
 
 @app.get("/queue/status")
 async def get_queue_status() -> Dict[str, int]:

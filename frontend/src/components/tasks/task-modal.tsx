@@ -2,17 +2,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ExternalLink, User, MapPin, Tag, Heart, MessageCircle, Bookmark } from 'lucide-react'
-import { RedNoteDBSchema } from '@/lib/types'
+import { ExtractedContentResponse } from '@/lib/types'
 import { getImageUrl } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
 
 interface TaskModalProps {
-  task: RedNoteDBSchema
+  task: ExtractedContentResponse
   children: React.ReactNode
 }
 
 export function TaskModal({ task, children }: TaskModalProps) {
-  const { note_content, user_profile, image_assets } = task
+  const { base_content, author_profile, metadata, links, comments, image_assets } = task
 
   return (
     <Dialog>
@@ -22,7 +22,7 @@ export function TaskModal({ task, children }: TaskModalProps) {
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
-            <span>{note_content.title}</span>
+            <span>{base_content.title}</span>
             {task.url && (
               <a
                 href={task.url}
@@ -47,34 +47,34 @@ export function TaskModal({ task, children }: TaskModalProps) {
             </CardHeader>
             <CardContent>
               <div className="flex items-start space-x-4">
-                {note_content.author_avatar_url && (
+                {links.author_avatar_url && (
                   <img
-                    src={note_content.author_avatar_url}
+                    src={links.author_avatar_url}
                     alt="作者头像"
                     className="w-12 h-12 rounded-full"
                   />
                 )}
                 <div className="space-y-2">
-                  <div className="font-medium">{user_profile.author_name}</div>
-                  {user_profile.introduction && (
+                  <div className="font-medium">{author_profile.author_name}</div>
+                  {author_profile.introduction && (
                     <div className="text-sm text-muted-foreground">
-                      {user_profile.introduction}
+                      {author_profile.introduction}
                     </div>
                   )}
                   <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                    {user_profile.location && (
+                    {author_profile.location && (
                       <div className="flex items-center space-x-1">
                         <MapPin className="w-3 h-3" />
-                        <span>{user_profile.location}</span>
+                        <span>{author_profile.location}</span>
                       </div>
                     )}
-                    {user_profile.career && (
-                      <div>{user_profile.career}</div>
+                    {author_profile.careers.length > 0 && (
+                      <div>{author_profile.careers.join(', ')}</div>
                     )}
                   </div>
-                  {user_profile.interests.length > 0 && (
+                  {author_profile.interests.length > 0 && (
                     <div className="flex flex-wrap gap-1">
-                      {user_profile.interests.map((interest, index) => (
+                      {author_profile.interests.map((interest, index) => (
                         <Badge key={index} variant="secondary" className="text-xs">
                           {interest}
                         </Badge>
@@ -93,30 +93,30 @@ export function TaskModal({ task, children }: TaskModalProps) {
               <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                 <div className="flex items-center space-x-1">
                   <Heart className="w-3 h-3" />
-                  <span>{note_content.like_count}</span>
+                  <span>{metadata.like_count}</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <MessageCircle className="w-3 h-3" />
-                  <span>{note_content.comment_count}</span>
+                  <span>{metadata.comment_count}</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <Bookmark className="w-3 h-3" />
-                  <span>{note_content.favorite_count}</span>
+                  <span>{metadata.favorite_count}</span>
                 </div>
-                <div>{note_content.date}</div>
-                {note_content.location && (
+                <div>{base_content.publish_date}</div>
+                {metadata.location && (
                   <div className="flex items-center space-x-1">
                     <MapPin className="w-3 h-3" />
-                    <span>{note_content.location}</span>
+                    <span>{metadata.location}</span>
                   </div>
                 )}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* 标签 */}
-              {note_content.tags.length > 0 && (
+              {metadata.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  {note_content.tags.map((tag, index) => (
+                  {metadata.tags.map((tag, index) => (
                     <Badge key={index} variant="outline" className="text-xs">
                       <Tag className="w-3 h-3 mr-1" />
                       {tag}
@@ -127,7 +127,7 @@ export function TaskModal({ task, children }: TaskModalProps) {
 
               {/* 正文内容 */}
               <div className="prose prose-sm max-w-none">
-                <ReactMarkdown>{note_content.content}</ReactMarkdown>
+                <ReactMarkdown>{base_content.content}</ReactMarkdown>
               </div>
 
               {/* 图片 */}
@@ -145,15 +145,18 @@ export function TaskModal({ task, children }: TaskModalProps) {
               )}
 
               {/* 评论 */}
-              {note_content.comments.length > 0 && (
+              {comments.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="font-medium">评论</h4>
-                  {note_content.comments.map((comment, index) => (
+                  {comments.map((comment, index) => (
                     <div key={index} className="bg-muted p-3 rounded-lg text-sm">
-                      <div>{comment.comment}</div>
-                      {comment.reply_to_comment && (
+                      <div className="font-medium text-xs text-muted-foreground mb-1">
+                        {comment.comment_author_name} • {comment.comment_publish_date}
+                      </div>
+                      <div>{comment.comment_content}</div>
+                      {comment.first_reply_to_comment && (
                         <div className="mt-1 text-muted-foreground">
-                          回复: {comment.reply_to_comment}
+                          回复: {comment.first_reply_to_comment}
                         </div>
                       )}
                     </div>
