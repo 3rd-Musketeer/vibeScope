@@ -199,6 +199,7 @@ if __name__ == "__main__":
             careers=["Engineer"]
         ),
         image_assets=["asset-uuid-123"],
+        avatar_asset="avatar-uuid-456",
         token_usage=1000,
         created_at=datetime.now(),
         processing_time_seconds=30

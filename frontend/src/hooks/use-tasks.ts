@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { QUERY_KEYS, POLLING_INTERVAL } from '@/lib/constants'
-import type { TaskCreateRequest } from '@/lib/types'
+import type { ExtractedContentResponse } from '@/lib/types'
 
 export function useTasks(projectId: string | null, status?: string) {
   return useQuery({
@@ -44,7 +44,7 @@ export function useRetryTask() {
         { queryKey: QUERY_KEYS.TASKS },
         (old: unknown) => {
           if (!old) return old
-          return Array.isArray(old) ? old.map((task: any) => 
+          return Array.isArray(old) ? old.map((task: ExtractedContentResponse) => 
             task.id === taskId 
               ? { ...task, status: 'pending', error_msg: null }
               : task

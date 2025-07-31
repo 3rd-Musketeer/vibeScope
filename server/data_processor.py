@@ -102,7 +102,17 @@ async def process_image_assets(image_urls: List[str]) -> List[str]:
     return await asset_manager.download_and_process_images(image_urls)
 
 
-def format_database_record(clean_note: dict, user_profile: dict, image_assets: List[str], task_data: dict, processing_time: int) -> DBSchema:
+async def process_avatar_asset(avatar_url: str) -> str:
+    """Process single avatar URL and return asset UUID"""
+    if not avatar_url:
+        return ""
+    
+    asset_manager = AssetManager()
+    avatar_uuids = await asset_manager.download_and_process_images([avatar_url])
+    return avatar_uuids[0] if avatar_uuids else ""
+
+
+def format_database_record(clean_note: dict, user_profile: dict, image_assets: List[str], avatar_asset: str, task_data: dict, processing_time: int) -> DBSchema:
     """Format clean data into DBSchema component assembly structure"""
     
     # Extract base content
@@ -164,6 +174,7 @@ def format_database_record(clean_note: dict, user_profile: dict, image_assets: L
         comments=comments,
         author_profile=author_profile,
         image_assets=image_assets,
+        avatar_asset=avatar_asset,
         token_usage=0,
         created_at=datetime.now(),
         processing_time_seconds=processing_time
@@ -200,6 +211,11 @@ async def process_task_to_database(task_data: dict) -> DBSchema:
         clean_note_content.get("image_urls", [])
     )
     
+    # Process avatar asset
+    avatar_asset = await process_avatar_asset(
+        clean_note_content.get("author_avatar_url", "")
+    )
+    
     # Calculate processing time
     processing_time = int((datetime.now() - start_time).total_seconds())
     
@@ -208,6 +224,7 @@ async def process_task_to_database(task_data: dict) -> DBSchema:
         clean_note=clean_note_content,
         user_profile=user_profile, 
         image_assets=image_assets,
+        avatar_asset=avatar_asset,
         task_data=task_data,
         processing_time=processing_time
     )
@@ -257,6 +274,7 @@ if __name__ == "__main__":
             clean_note=clean_data,
             user_profile=profile,
             image_assets=["asset-123"],
+            avatar_asset="avatar-456",
             task_data=test_task_data,
             processing_time=30
         )
@@ -265,6 +283,7 @@ if __name__ == "__main__":
         assert db_record.base_content.title == "未知标题"
         assert db_record.author_profile.author_name == "未知"
         assert len(db_record.image_assets) == 1
+        assert db_record.avatar_asset == "avatar-456"
         print("✓ DBSchema assembly working")
         
         print("All data processor tests passed!")

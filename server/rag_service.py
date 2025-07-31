@@ -26,13 +26,18 @@ async_client = instructor.from_openai(
     mode=instructor.Mode.JSON,
 )
 
-model = os.getenv("OPENAI_MODEL", "google/gemini-2.5-flash")
+model = "google/gemini-2.5-flash"
 
 
 class SingleAnswer(BaseModel):
     note_id: str = Field(description="ID of the source note")
     should_include: bool = Field(description="Whether this note is relevant to the question")
     answer: str = Field(description="Answer extracted from this specific note")
+
+
+class AggAnswer(BaseModel):
+    reasoning: str = Field(description="Short reasoning of the aggregated answer")
+    answer: str = Field(description="The answer to the question by aggregating the separate single answers")
 
 
 def load_and_validate_notes(project_id: str) -> list[DBSchema]:
@@ -103,6 +108,7 @@ def load_and_validate_notes(project_id: str) -> list[DBSchema]:
                         careers=[user_profile.get("career", "")] if user_profile.get("career") else []
                     ),
                     image_assets=task.get("image_assets", []),
+                    avatar_asset=task.get("avatar_asset", ""),
                     token_usage=task.get("token_usage", 0),
                     created_at=datetime.fromisoformat(task["created_at"]) if isinstance(task["created_at"], str) else task["created_at"],
                     processing_time_seconds=task.get("processing_time_seconds", 0)
@@ -215,10 +221,11 @@ Please synthesize these individual answers into a coherent, comprehensive respon
         response = await async_client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": aggregation_prompt}],
+            response_model=AggAnswer,
             temperature=0
         )
         
-        return response.choices[0].message.content
+        return response.answer
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to aggregate answers: {str(e)}")

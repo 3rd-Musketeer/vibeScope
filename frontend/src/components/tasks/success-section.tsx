@@ -5,13 +5,15 @@ import { Input } from '@/components/ui/input'
 import { Search, ExternalLink, User } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import { useSuccessfulTasks } from '@/hooks/use-tasks'
-import { useStore } from '@/lib/store'
+import { useStore, useQueryStore } from '@/lib/store'
 import { TaskModal } from './task-modal'
 import { getThumbnailUrl } from '@/lib/utils'
+import Image from 'next/image'
 
 export function SuccessSection() {
   const [searchQuery, setSearchQuery] = useState('')
   const { currentProjectId } = useStore()
+  const { relevantNoteIds } = useQueryStore()
   const { data: successfulTasks = [], isLoading } = useSuccessfulTasks(currentProjectId)
 
   const filteredTasks = useMemo(() => {
@@ -67,9 +69,13 @@ export function SuccessSection() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredTasks.map((task) => (
-              <TaskModal key={task.id} task={task}>
-                <Card className="cursor-pointer hover:shadow-md transition-shadow">
+            {filteredTasks.map((task) => {
+              const isRelevant = relevantNoteIds.includes(task.id)
+              return (
+                <TaskModal key={task.id} task={task}>
+                  <Card className={`cursor-pointer hover:shadow-md transition-shadow ${
+                    isRelevant ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                  }`}>
                   <CardContent className="p-4">
                     <div className="space-y-3">
                       {/* 标题和链接 */}
@@ -77,14 +83,23 @@ export function SuccessSection() {
                         <h3 className="font-medium text-sm line-clamp-2">
                           {task.base_content.title}
                         </h3>
-                        <ExternalLink className="w-3 h-3 text-muted-foreground flex-shrink-0 ml-2" />
+                        <div className="flex items-center space-x-1">
+                          {isRelevant && (
+                            <span className="px-1.5 py-0.5 text-xs bg-blue-500 text-white rounded">
+                              相关
+                            </span>
+                          )}
+                          <ExternalLink className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                        </div>
                       </div>
                       
                       {/* 第一张图片 */}
                       {task.image_assets.length > 0 && (
-                        <img
+                        <Image
                           src={getThumbnailUrl(task.image_assets[0])}
                           alt="预览图"
+                          width={320}
+                          height={128}
                           className="w-full h-32 object-cover rounded"
                         />
                       )}
@@ -105,7 +120,8 @@ export function SuccessSection() {
                   </CardContent>
                 </Card>
               </TaskModal>
-            ))}
+            )
+            })}
           </div>
         )}
       </CardContent>

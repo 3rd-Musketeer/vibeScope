@@ -83,7 +83,7 @@ export function ProjectSelector() {
                     onClick={handleCreateProject}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    创建项目 "{searchQuery}"
+                    创建项目 &ldquo;{searchQuery}&rdquo;
                   </div>
                 )}
                 

@@ -48,6 +48,7 @@ class DBSchema(BaseModel):
     comments: list[CommentsModel] = Field(description="Comments and replies")
     author_profile: AuthorProfileModel = Field(description="Author profile information")
     image_assets: list[str] = Field(default_factory=list, description="Asset UUIDs for images")
+    avatar_asset: str = Field(default="", description="Asset UUID for author avatar")
     token_usage: int = Field(description="LLM token consumption")
     created_at: datetime = Field(description="Extraction timestamp")
     processing_time_seconds: int = Field(description="Processing time excluding wait time")
@@ -116,6 +117,7 @@ if __name__ == "__main__":
         comments=[comment],
         author_profile=author_profile,
         image_assets=["uuid-123", "uuid-456"],
+        avatar_asset="avatar-uuid-789",
         token_usage=1500,
         created_at=datetime.now(),
         processing_time_seconds=45

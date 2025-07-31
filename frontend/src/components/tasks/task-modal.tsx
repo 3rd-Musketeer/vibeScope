@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ExternalLink, User, MapPin, Tag, Heart, MessageCircle, Bookmark } from 'lucide-react'
 import { ExtractedContentResponse } from '@/lib/types'
-import { getImageUrl } from '@/lib/utils'
+import { getImageUrl, getAvatarUrl } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
+import Image from 'next/image'
 
 interface TaskModalProps {
   task: ExtractedContentResponse
@@ -47,10 +48,12 @@ export function TaskModal({ task, children }: TaskModalProps) {
             </CardHeader>
             <CardContent>
               <div className="flex items-start space-x-4">
-                {links.author_avatar_url && (
-                  <img
-                    src={links.author_avatar_url}
+                {(task.avatar_asset || links.author_avatar_url) && (
+                  <Image
+                    src={getAvatarUrl(task.avatar_asset, links.author_avatar_url)}
                     alt="作者头像"
+                    width={48}
+                    height={48}
                     className="w-12 h-12 rounded-full"
                   />
                 )}
@@ -134,10 +137,12 @@ export function TaskModal({ task, children }: TaskModalProps) {
               {image_assets.length > 0 && (
                 <div className="grid grid-cols-2 gap-4">
                   {image_assets.map((assetUuid, index) => (
-                    <img
+                    <Image
                       key={index}
                       src={getImageUrl(assetUuid)}
                       alt={`图片 ${index + 1}`}
+                      width={400}
+                      height={300}
                       className="rounded-lg max-w-full h-auto"
                     />
                   ))}

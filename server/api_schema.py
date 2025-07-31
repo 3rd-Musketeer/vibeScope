@@ -69,6 +69,7 @@ class ExtractedContentResponse(BaseModel):
     comments: list[CommentsModel] = Field(description="Comments and replies")
     author_profile: AuthorProfileModel = Field(description="Author profile information")
     image_assets: list[str] = Field(default_factory=list, description="Asset UUIDs for images")
+    avatar_asset: str = Field(default="", description="Asset UUID for author avatar")
     token_usage: int = Field(description="LLM token consumption")
     created_at: datetime = Field(description="Extraction timestamp")
     processing_time_seconds: int = Field(description="Processing time excluding wait time")
@@ -87,6 +88,7 @@ class ExtractedContentResponse(BaseModel):
             comments=db_record.comments,
             author_profile=db_record.author_profile,
             image_assets=db_record.image_assets,
+            avatar_asset=db_record.avatar_asset,
             token_usage=db_record.token_usage,
             created_at=db_record.created_at,
             processing_time_seconds=db_record.processing_time_seconds
@@ -181,6 +183,7 @@ if __name__ == "__main__":
             careers=["Engineer"]
         ),
         image_assets=["uuid-123"],
+        avatar_asset="avatar-uuid-456",
         token_usage=1000,
         created_at=datetime.now(),
         processing_time_seconds=30

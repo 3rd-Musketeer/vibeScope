@@ -1,9 +1,9 @@
-import { ChatInterface } from '@/components/chat/chat-interface'
+import { QueryInterface } from '@/components/query/query-interface'
 
 export function RightSidebar() {
   return (
-    <aside className="flex-1 border-l p-6 overflow-y-auto">
-      <ChatInterface />
+    <aside className="flex-1 border-l p-4 overflow-y-auto">
+      <QueryInterface />
     </aside>
   )
 }

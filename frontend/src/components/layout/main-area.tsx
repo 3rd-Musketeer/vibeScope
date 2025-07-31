@@ -3,8 +3,8 @@ import { SuccessSection } from '@/components/tasks/success-section'
 
 export function MainArea() {
   return (
-    <main className="flex-[2] p-8 overflow-y-auto">
-      <div className="space-y-8">
+    <main className="flex-[2] p-6 overflow-y-auto">
+      <div className="space-y-6">
         <div>
           <h2 className="text-lg font-semibold mb-4">任务看板</h2>
           <TaskKanban />
