@@ -6,12 +6,14 @@ import httpx
 import base64
 from db import save_successful_task
 from extractor import extract_note_content, extract_user_profile
+from asset_manager import AssetManager
 
 class TaskQueue:
     def __init__(self):
         self.tasks: Dict[str, Dict[str, Any]] = {}
         self.semaphore = asyncio.Semaphore(2)
         self.dispatcher_running = False
+        self.asset_manager = AssetManager()
     
     def add_task(self, task: Dict[str, Any]) -> None:
         if not task.get("id"):
@@ -174,8 +176,10 @@ class TaskQueue:
                     "career": "未知"
                 }
             
+            image_assets = []
             image_base64_list = []
             if note_content.get("image_urls"):
+                image_assets = await self.asset_manager.download_and_process_images(note_content["image_urls"])
                 for image_url in note_content["image_urls"]:
                     data_url = await self.fetch_image_as_data_url(image_url)
                     if data_url:
@@ -190,6 +194,7 @@ class TaskQueue:
                 "html": task.get("html"),
                 "note_content": note_content,
                 "user_profile": user_profile,
+                "image_assets": image_assets,
                 "image_base64": image_base64_list,
                 "token_usage": 0,
                 "created_at": datetime.now().isoformat(),

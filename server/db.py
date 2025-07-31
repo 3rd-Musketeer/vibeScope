@@ -2,11 +2,13 @@ from tinydb import TinyDB, Query
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 import json
+import os
 from schema import ProjectSchema, RedNoteDBSchema
 
 def init_db() -> None:
-    projects_db = TinyDB('projects.json')
-    successful_tasks_db = TinyDB('successful_tasks.json')
+    os.makedirs('data', exist_ok=True)
+    projects_db = TinyDB('data/projects.json')
+    successful_tasks_db = TinyDB('data/crawled_data.json')
     projects_db.close()
     successful_tasks_db.close()
 
@@ -14,7 +16,7 @@ def save_project(project: Dict[str, Any]) -> None:
     if not project.get("id"):
         raise ValueError("project id is required")
     
-    db = TinyDB('projects.json')
+    db = TinyDB('data/projects.json')
     Project = Query()
     
     existing = db.search(Project.id == project["id"])
@@ -26,7 +28,7 @@ def save_project(project: Dict[str, Any]) -> None:
     db.close()
 
 def get_projects() -> List[Dict[str, Any]]:
-    db = TinyDB('projects.json')
+    db = TinyDB('data/projects.json')
     projects = db.all()
     db.close()
     return projects
@@ -44,7 +46,7 @@ def save_successful_task(task: Dict[str, Any]) -> None:
     except Exception as e:
         raise ValueError(f"task data does not match RedNoteDBSchema: {e}")
     
-    db = TinyDB('successful_tasks.json')
+    db = TinyDB('data/crawled_data.json')
     db.insert(task)
     db.close()
 
@@ -52,7 +54,7 @@ def get_successful_tasks_by_project(project_id: str) -> List[Dict[str, Any]]:
     if not project_id:
         raise ValueError("project_id is required")
     
-    db = TinyDB('successful_tasks.json')
+    db = TinyDB('data/crawled_data.json')
     Task = Query()
     tasks = db.search(Task.project_id == project_id)
     db.close()
@@ -83,7 +85,7 @@ def export_project_data(project_id: str) -> Dict[str, Any]:
     if not project_id:
         raise ValueError("project_id is required")
     
-    project_db = TinyDB('projects.json')
+    project_db = TinyDB('data/projects.json')
     Project = Query()
     project = project_db.search(Project.id == project_id)
     project_db.close()
@@ -105,10 +107,10 @@ if __name__ == "__main__":
     import uuid
     import os
     
-    if os.path.exists('projects.json'):
-        os.remove('projects.json')
-    if os.path.exists('successful_tasks.json'):
-        os.remove('successful_tasks.json')
+    if os.path.exists('data/projects.json'):
+        os.remove('data/projects.json')
+    if os.path.exists('data/crawled_data.json'):
+        os.remove('data/crawled_data.json')
     
     print("Testing database operations...")
     
@@ -187,7 +189,7 @@ if __name__ == "__main__":
     assert len(export_data["successful_tasks"]) == 1
     print("✓ Project export completed")
     
-    os.remove('projects.json')
-    os.remove('successful_tasks.json')
+    os.remove('data/projects.json')
+    os.remove('data/crawled_data.json')
     
     print("All database operations validated successfully!")

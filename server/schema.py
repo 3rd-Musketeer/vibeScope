@@ -113,7 +113,8 @@ class RedNoteDBSchema(BaseModel):
     html: Optional[str] = Field(default=None, description="HTML content of the note")
     note_content: RedNoteSchema = Field(description="Note content")
     user_profile: RedNoteUserProfileSchema = Field(description="User profile")
-    image_base64: list[str] = Field(description="Image base64 list")
+    image_assets: list[str] = Field(default_factory=list, description="Asset UUIDs for images")
+    image_base64: list[str] = Field(default_factory=list, description="Image base64 list - TODO: Remove in future refactor - keeping for backward compatibility")
     token_usage: int = Field(description="Token usage")
     created_at: datetime = Field(description="Creation timestamp")
     processing_time_seconds: int = Field(description="Processing time in seconds")
@@ -199,6 +200,7 @@ if __name__ == "__main__":
             "interests": ["Programming"],
             "career": "Engineer"
         },
+        "image_assets": ["uuid-123", "uuid-456"],
         "image_base64": ["base64encodedimage"],
         "token_usage": 1000,
         "created_at": datetime.now(),
