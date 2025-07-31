@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ExternalLink, User, MapPin, Tag, Heart, MessageCircle, Bookmark } from 'lucide-react'
 import { RedNoteDBSchema } from '@/lib/types'
+import { getImageUrl } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
 
 interface TaskModalProps {
@@ -11,7 +12,7 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ task, children }: TaskModalProps) {
-  const { note_content, user_profile, image_base64 } = task
+  const { note_content, user_profile, image_assets } = task
 
   return (
     <Dialog>
@@ -130,12 +131,12 @@ export function TaskModal({ task, children }: TaskModalProps) {
               </div>
 
               {/* 图片 */}
-              {image_base64.length > 0 && (
+              {image_assets.length > 0 && (
                 <div className="grid grid-cols-2 gap-4">
-                  {image_base64.map((imageData, index) => (
+                  {image_assets.map((assetUuid, index) => (
                     <img
                       key={index}
-                      src={imageData}
+                      src={getImageUrl(assetUuid)}
                       alt={`图片 ${index + 1}`}
                       className="rounded-lg max-w-full h-auto"
                     />

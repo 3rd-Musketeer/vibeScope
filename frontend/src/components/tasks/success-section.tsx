@@ -7,6 +7,7 @@ import { useState, useMemo } from 'react'
 import { useSuccessfulTasks } from '@/hooks/use-tasks'
 import { useStore } from '@/lib/store'
 import { TaskModal } from './task-modal'
+import { getThumbnailUrl } from '@/lib/utils'
 
 export function SuccessSection() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -80,9 +81,9 @@ export function SuccessSection() {
                       </div>
                       
                       {/* 第一张图片 */}
-                      {task.image_base64.length > 0 && (
+                      {task.image_assets.length > 0 && (
                         <img
-                          src={task.image_base64[0]}
+                          src={getThumbnailUrl(task.image_assets[0])}
                           alt="预览图"
                           className="w-full h-32 object-cover rounded"
                         />

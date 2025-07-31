@@ -163,3 +163,9 @@ OPENAI_MODEL=google/gemini-2.0-flash-thinking-exp
 ## Target Use Case
 
 This tool is designed for **internal research teams** conducting market analysis of Chinese social media platforms, specifically for AI companion product development. Users can create research projects, submit URLs for content extraction, monitor processing status through a kanban interface, and export structured data for presentation and analysis.
+
+## Development Best Practices
+
+### Git Workflow
+- **Commit Management**:
+  - git add should go with dry-run first and do not add any file that is not relevant with the task in session.

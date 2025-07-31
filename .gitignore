@@ -189,3 +189,14 @@ frontend/out/
 # Backup files
 *.bak
 *.backup
+
+server/dev_docs/
+dev_docs/
+legacy/
+
+# Claude Code
+.claude/
+
+# Development files
+server/scripts/
+server/static/

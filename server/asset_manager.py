@@ -9,7 +9,7 @@ import io
 
 class URLDeduplicator:
     def __init__(self):
-        self.url_hashes: Set[str] = set()
+        self.url_to_uuid: Dict[str, str] = {}
         self.content_hashes: Dict[str, str] = {}
         
     def get_url_hash(self, url: str) -> str:
@@ -18,13 +18,13 @@ class URLDeduplicator:
     def get_content_hash(self, content: bytes) -> str:
         return hashlib.sha256(content).hexdigest()
     
-    def is_url_processed(self, url: str) -> bool:
+    def get_uuid_for_url(self, url: str) -> str | None:
         url_hash = self.get_url_hash(url)
-        return url_hash in self.url_hashes
+        return self.url_to_uuid.get(url_hash)
     
-    def mark_url_processed(self, url: str) -> None:
+    def register_url_uuid(self, url: str, asset_uuid: str) -> None:
         url_hash = self.get_url_hash(url)
-        self.url_hashes.add(url_hash)
+        self.url_to_uuid[url_hash] = asset_uuid
     
     def is_content_duplicate(self, content: bytes) -> str | None:
         content_hash = self.get_content_hash(content)
@@ -72,11 +72,21 @@ class AssetManager:
         os.makedirs(self.thumbnails_dir, exist_ok=True)
     
     async def download_and_process_images(self, image_urls: List[str]) -> List[str]:
+        # Order-preserving deduplication
+        seen = set()
+        unique_urls = []
+        for url in image_urls:
+            if url not in seen:
+                seen.add(url)
+                unique_urls.append(url)
+        
         asset_uuids = []
         
         async with httpx.AsyncClient(timeout=30.0) as client:
-            for url in image_urls:
-                if self.deduplicator.is_url_processed(url):
+            for url in unique_urls:
+                existing_uuid = self.deduplicator.get_uuid_for_url(url)
+                if existing_uuid:
+                    asset_uuids.append(existing_uuid)
                     continue
                 
                 try:
@@ -87,7 +97,7 @@ class AssetManager:
                     existing_uuid = self.deduplicator.is_content_duplicate(image_data)
                     if existing_uuid:
                         asset_uuids.append(existing_uuid)
-                        self.deduplicator.mark_url_processed(url)
+                        self.deduplicator.register_url_uuid(url, existing_uuid)
                         continue
                     
                     asset_uuid = str(uuid.uuid4())
@@ -104,7 +114,7 @@ class AssetManager:
                         f.write(thumbnail_data)
                     
                     self.deduplicator.register_content(image_data, asset_uuid)
-                    self.deduplicator.mark_url_processed(url)
+                    self.deduplicator.register_url_uuid(url, asset_uuid)
                     asset_uuids.append(asset_uuid)
                     
                 except Exception as e:
@@ -123,9 +133,9 @@ if __name__ == "__main__":
         test_url1 = "https://example.com/image1.jpg"
         test_content1 = b"test image content 1"
         
-        assert not dedup.is_url_processed(test_url1)
-        dedup.mark_url_processed(test_url1)
-        assert dedup.is_url_processed(test_url1)
+        assert dedup.get_uuid_for_url(test_url1) is None
+        dedup.register_url_uuid(test_url1, "uuid-456")
+        assert dedup.get_uuid_for_url(test_url1) == "uuid-456"
         
         assert dedup.is_content_duplicate(test_content1) is None
         dedup.register_content(test_content1, "uuid-123")
