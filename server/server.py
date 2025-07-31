@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 
 from schema import TaskCreateRequest, TaskResponse, ProjectSchema, ProjectStatsResponse, ProjectCreateRequest
-from db import init_db, save_project, get_projects, get_successful_tasks_by_project, get_project_stats, export_project_data
+from db import init_db, save_project, get_projects, get_successful_tasks_by_project, get_project_stats, export_project_data, delete_project_data
 from task_queue import TaskQueue
 
 app = FastAPI(title="Social Media Research Assistant", version="0.1.0")
@@ -161,6 +161,17 @@ async def export_project(project_id: str) -> Dict[str, Any]:
     
     try:
         return export_project_data(project_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@app.delete("/projects/{project_id}")
+async def delete_project(project_id: str) -> Dict[str, str]:
+    if not project_id:
+        raise HTTPException(status_code=400, detail="project_id is required")
+    
+    try:
+        delete_project_data(project_id)
+        return {"message": f"project {project_id} deleted successfully"}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 

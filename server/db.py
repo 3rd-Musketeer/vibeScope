@@ -102,6 +102,26 @@ def export_project_data(project_id: str) -> Dict[str, Any]:
         "total_tasks": len(successful_tasks)
     }
 
+def delete_project_data(project_id: str) -> None:
+    if not project_id:
+        raise ValueError("project_id is required")
+    
+    project_db = TinyDB('data/projects.json')
+    Project = Query()
+    project = project_db.search(Project.id == project_id)
+    
+    if not project:
+        project_db.close()
+        raise ValueError(f"project {project_id} not found")
+    
+    project_db.remove(Project.id == project_id)
+    project_db.close()
+    
+    tasks_db = TinyDB('data/crawled_data.json')
+    Task = Query()
+    tasks_db.remove(Task.project_id == project_id)
+    tasks_db.close()
+
 if __name__ == "__main__":
     from datetime import datetime
     import uuid
@@ -188,6 +208,17 @@ if __name__ == "__main__":
     assert export_data["project"]["id"] == "test-project-123"
     assert len(export_data["successful_tasks"]) == 1
     print("✓ Project export completed")
+    
+    delete_project_data("test-project-123")
+    print("✓ Project deletion completed")
+    
+    remaining_projects = get_projects()
+    assert len(remaining_projects) == 0
+    print("✓ Project deletion verified")
+    
+    remaining_tasks = get_successful_tasks_by_project("test-project-123")
+    assert len(remaining_tasks) == 0
+    print("✓ Task cleanup verified")
     
     os.remove('data/projects.json')
     os.remove('data/crawled_data.json')
