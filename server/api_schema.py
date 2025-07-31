@@ -12,6 +12,15 @@ class TaskCreateRequest(BaseModel):
 class ProjectCreateRequest(BaseModel):
     name: str = Field(description="Project name")
 
+# Query/RAG Models
+class QueryRequest(BaseModel):
+    project_id: str = Field(description="Project ID to query")
+    question: str = Field(description="Question to ask about the project notes")
+
+class QueryResponse(BaseModel):
+    answer: str = Field(description="Aggregated answer to the question")
+    relevant_note_ids: list[str] = Field(description="IDs of notes that were relevant to the question")
+
 # Task Management Models
 class TaskSchema(BaseModel):
     id: str = Field(description="Unique task identifier")

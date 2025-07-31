@@ -5,9 +5,10 @@ from typing import Dict, List, Any, Optional
 import uuid
 from datetime import datetime
 
-from api_schema import TaskCreateRequest, TaskResponse, ProjectSchema, ProjectStatsResponse, ProjectCreateRequest, ExtractedContentResponse
+from api_schema import TaskCreateRequest, TaskResponse, ProjectSchema, ProjectStatsResponse, ProjectCreateRequest, ExtractedContentResponse, QueryRequest, QueryResponse
 from db import init_db, save_project, get_projects, get_successful_tasks_by_project, get_project_stats, export_project_data, delete_project_data
 from task_queue import TaskQueue
+from rag_service import query_project_notes
 
 app = FastAPI(title="Social Media Research Assistant", version="0.1.0")
 
@@ -267,6 +268,17 @@ async def get_extracted_content(project_id: str) -> List[ExtractedContentRespons
 @app.get("/queue/status")
 async def get_queue_status() -> Dict[str, int]:
     return task_queue.get_queue_stats()
+
+@app.post("/query", response_model=QueryResponse)
+async def query_project(request: QueryRequest) -> QueryResponse:
+    """Query project notes using two-factor RAG pipeline"""
+    if not request.project_id:
+        raise HTTPException(status_code=400, detail="project_id is required")
+    
+    if not request.question.strip():
+        raise HTTPException(status_code=400, detail="question cannot be empty")
+    
+    return await query_project_notes(request.project_id, request.question)
 
 @app.on_event("startup")
 async def startup_event():

@@ -200,3 +200,5 @@ legacy/
 # Development files
 server/scripts/
 server/static/
+
+*.ipynb
