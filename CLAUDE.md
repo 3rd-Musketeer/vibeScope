@@ -166,6 +166,15 @@ This tool is designed for **internal research teams** conducting market analysis
 
 ## Development Best Practices
 
+### Python Environment
+- **Dependency Management**: Uses `uv` for fast Python package management
+- **Virtual Environment**: `.venv` directory contains isolated Python environment
+- **No pyproject.toml**: Dependencies managed directly through uv commands
+
+### TypeScript Configuration
+- **Path Aliases**: `@/*` maps to `./src/*` in frontend for clean imports
+- **Next.js Integration**: TypeScript configured with Next.js plugin for optimal development experience
+
 ### Git Workflow
 - **Commit Management**:
   - git add should go with dry-run first and do not add any file that is not relevant with the task in session.

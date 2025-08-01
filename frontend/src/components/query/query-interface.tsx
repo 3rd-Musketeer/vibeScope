@@ -7,6 +7,7 @@ import { Send, MessageCircle, AlertCircle } from 'lucide-react'
 import { useState } from 'react'
 import { useQuery } from '@/hooks/use-query'
 import { useStore, useQueryStore } from '@/lib/store'
+import ReactMarkdown from 'react-markdown'
 
 export function QueryInterface() {
   const [question, setQuestion] = useState('')
@@ -108,8 +109,22 @@ export function QueryInterface() {
                   <div className="text-sm text-muted-foreground mb-2">
                     相关笔记: {queryResponse.relevant_note_ids.length} 条
                   </div>
-                  <div className="text-foreground leading-relaxed whitespace-pre-wrap">
-                    {queryResponse.answer}
+                  <div className="text-foreground leading-relaxed prose prose-sm max-w-none">
+                    <ReactMarkdown 
+                      components={{
+                        // Customize markdown components for better styling
+                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                        li: ({ children }) => <li className="text-sm">{children}</li>,
+                        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                        em: ({ children }) => <em className="italic">{children}</em>,
+                        code: ({ children }) => <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
+                        pre: ({ children }) => <pre className="bg-muted p-2 rounded text-xs overflow-x-auto">{children}</pre>,
+                      }}
+                    >
+                      {queryResponse.answer}
+                    </ReactMarkdown>
                   </div>
                 </div>
               </CardContent>

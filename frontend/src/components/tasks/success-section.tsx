@@ -74,7 +74,7 @@ export function SuccessSection() {
               return (
                 <TaskModal key={task.id} task={task}>
                   <Card className={`cursor-pointer hover:shadow-md transition-shadow ${
-                    isRelevant ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                    isRelevant ? 'border-2 border-orange-500' : ''
                   }`}>
                   <CardContent className="p-4">
                     <div className="space-y-3">
@@ -84,11 +84,6 @@ export function SuccessSection() {
                           {task.base_content.title}
                         </h3>
                         <div className="flex items-center space-x-1">
-                          {isRelevant && (
-                            <span className="px-1.5 py-0.5 text-xs bg-blue-500 text-white rounded">
-                              相关
-                            </span>
-                          )}
                           <ExternalLink className="w-3 h-3 text-muted-foreground flex-shrink-0" />
                         </div>
                       </div>
