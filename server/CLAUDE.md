@@ -103,7 +103,7 @@ uv run python main.py
 # API documentation: http://localhost:8000/docs
 
 # Install additional dependencies
-uv pip install <package-name>
+uv add <package-name>
 ```
 
 ### Development & Testing
@@ -119,6 +119,19 @@ uv run python data_processor.py
 # Run integration tests (requires running server)
 # Terminal 1: uv run python main.py
 # Terminal 2: uv run python tests/integration_test.py
+```
+
+### Code Quality & Linting
+```bash
+# Backend linting and formatting (Ruff - 100x faster than Flake8/Pylint)
+uv run ruff check .              # Check for linting issues
+uv run ruff format .             # Auto-format code
+uv run ruff check . --fix        # Auto-fix issues where possible
+
+# Frontend linting (Oxlint - 50x faster than ESLint)
+cd ../frontend
+npm run lint                     # Run Oxlint (configured as default lint command)
+npx oxlint src --fix            # Auto-fix issues where possible
 ```
 
 ## API Endpoints
