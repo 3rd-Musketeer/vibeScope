@@ -215,7 +215,7 @@ async def aggregate_answers(question: str, answers: list[SingleAnswer]) -> str:
 
 Question: {question}
 
-Please synthesize these individual answers into a coherent, comprehensive response."""
+Please synthesize these individual answers into a coherent, comprehensive response, using the language of the question."""
 
     try:
         response = await async_client.chat.completions.create(
