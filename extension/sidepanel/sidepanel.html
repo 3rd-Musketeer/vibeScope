@@ -4,125 +4,70 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Social Media Research Assistant</title>
-  <link rel="stylesheet" href="sidepanel.css">
+  <link rel="stylesheet" href="../extension.css">
 </head>
 <body>
-  <div class="container">
+  <div class="sidepanel-container">
     <!-- Header -->
-    <header class="header">
-      <div class="logo">
-        <h1>🔍 Research Assistant</h1>
+    <div class="sidepanel-header">
+      <h1 class="sidepanel-title">🔍 Content Scraper</h1>
+      <div class="flex items-center gap-2">
+        <div id="status-dot" class="status-dot connected"></div>
+        <span class="text-xs text-secondary">Ready</span>
       </div>
-      <div class="status-indicator" id="status-indicator">
-        <span class="status-dot" id="status-dot"></span>
-        <span class="status-text" id="status-text">Not Connected</span>
-      </div>
-    </header>
-
-    <!-- Project Configuration Section -->
-    <section class="config-section" id="config-section">
-      <h2>Project Configuration</h2>
-      <div class="input-group">
-        <label for="project-key">Project Key</label>
-        <div class="key-input-container">
-          <input 
-            type="password" 
-            id="project-key" 
-            placeholder="Paste your project key here..."
-            autocomplete="off"
-          >
-          <button type="button" id="toggle-key-visibility" class="toggle-btn">👁️</button>
-        </div>
-        <button id="connect-btn" class="primary-btn">Connect</button>
-      </div>
-      <div class="config-info" id="config-info" style="display: none;">
-        <p><strong>Project:</strong> <span id="project-id"></span></p>
-        <p><strong>Backend:</strong> <span id="backend-url"></span></p>
-      </div>
-    </section>
-
-    <!-- Capture Controls Section -->
-    <section class="capture-section" id="capture-section" style="display: none;">
-      <h2>Content Capture</h2>
-      
-      <!-- Full Page Capture -->
-      <div class="capture-mode">
-        <h3>📄 Full Page Capture</h3>
-        <p>Capture the entire page HTML content</p>
-        <button id="capture-full-page" class="secondary-btn">
-          <span class="btn-icon">📸</span>
-          Capture Full Page
-        </button>
-      </div>
-
-      <!-- Element Selection -->
-      <div class="capture-mode">
-        <h3>🎯 Element Selection</h3>
-        <p>Select specific elements to capture</p>
-        <button id="start-selection" class="secondary-btn">
-          <span class="btn-icon">🖱️</span>
-          Start Element Selection
-        </button>
-        <button id="stop-selection" class="secondary-btn" style="display: none;">
-          <span class="btn-icon">❌</span>
-          Stop Selection
-        </button>
-      </div>
-    </section>
-
-    <!-- Preview Section -->
-    <section class="preview-section" id="preview-section" style="display: none;">
-      <h2>Content Preview</h2>
-      <div class="preview-container">
-        <div class="preview-header">
-          <h3 id="preview-title">Selected Content</h3>
-          <button id="clear-preview" class="clear-btn">✖️</button>
-        </div>
-        
-        <!-- Element Info -->
-        <div class="element-info" id="element-info" style="display: none;">
-          <p><strong>Element:</strong> <span id="element-tag"></span></p>
-          <p><strong>Selector:</strong> <code id="element-selector"></code></p>
-          <p><strong>Content:</strong> <span id="element-content"></span></p>
-        </div>
-
-        <!-- Visual Preview -->
-        <div class="visual-preview" id="visual-preview" style="display: none;">
-          <img id="preview-image" alt="Element preview" />
-        </div>
-
-        <!-- Page Info -->
-        <div class="page-info" id="page-info" style="display: none;">
-          <p><strong>Page Title:</strong> <span id="page-title"></span></p>
-          <p><strong>URL:</strong> <span id="page-url"></span></p>
-        </div>
-
-        <!-- Submit Controls -->
-        <div class="submit-controls" id="submit-controls" style="display: none;">
-          <button id="submit-content" class="primary-btn">
-            <span class="btn-icon">📤</span>
-            Submit to Backend
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Activity Log -->
-    <section class="activity-section">
-      <h2>Activity Log</h2>
-      <div class="activity-log" id="activity-log">
-        <div class="log-entry">
-          <span class="timestamp">Ready</span>
-          <span class="message">Extension loaded successfully</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loading-overlay" style="display: none;">
-      <div class="loading-spinner"></div>
-      <p id="loading-message">Processing...</p>
     </div>
+
+    <!-- Capture Method Selection -->
+    <div class="capture-section">
+      <h2 class="section-title">Choose Capture Method</h2>
+      <div class="radio-group">
+        <label class="radio-item" data-method="full-page">
+          <input type="radio" name="capture-method" value="full-page" checked>
+          <div>
+            <div class="font-medium">📄 Full Page</div>
+            <div class="text-xs text-secondary">Capture entire webpage HTML</div>
+          </div>
+        </label>
+        
+        <label class="radio-item" data-method="element-select">
+          <input type="radio" name="capture-method" value="element-select">
+          <div>
+            <div class="font-medium">🎯 Select Element</div>
+            <div class="text-xs text-secondary">Choose specific elements to capture</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Action Button -->
+    <button id="capture-btn" class="btn btn-primary w-full mb-4">
+      📸 Capture Full Page
+    </button>
+
+    <!-- Preview Area -->
+    <div id="preview-section" style="display: none;">
+      <h2 class="section-title">Content Preview</h2>
+      <div class="preview-area">
+        <div id="preview-content" class="preview-content">
+          <div class="text-sm text-muted">Captured content will appear here</div>
+        </div>
+      </div>
+      
+      <div id="preview-meta" class="preview-meta" style="display: none;">
+        <div class="text-xs">
+          <div><strong>Title:</strong> <span id="page-title"></span></div>
+          <div><strong>URL:</strong> <span id="page-url"></span></div>
+          <div><strong>Size:</strong> <span id="content-size"></span></div>
+        </div>
+      </div>
+
+      <button id="submit-btn" class="btn btn-primary w-full" disabled>
+        📤 Send to Server
+      </button>
+    </div>
+
+    <!-- Status -->
+    <div id="status-text" class="status-text">Ready to capture content</div>
   </div>
 
   <script src="sidepanel.js"></script>

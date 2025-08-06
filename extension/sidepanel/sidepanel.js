@@ -1,466 +1,375 @@
-// Sidepanel JavaScript for Social Media Research Assistant
-// Handles UI interactions, state management, and communication with background script
-
+// Sidepanel JavaScript - Simplified capture interface
 console.log('Sidepanel script loaded');
 
-// DOM elements
-const elements = {
-  // Status
-  statusDot: document.getElementById('status-dot'),
-  statusText: document.getElementById('status-text'),
-  
-  // Configuration
-  configSection: document.getElementById('config-section'),
-  projectKeyInput: document.getElementById('project-key'),
-  toggleKeyBtn: document.getElementById('toggle-key-visibility'),
-  connectBtn: document.getElementById('connect-btn'),
-  configInfo: document.getElementById('config-info'),
-  projectId: document.getElementById('project-id'),
-  backendUrl: document.getElementById('backend-url'),
-  
-  // Capture controls
-  captureSection: document.getElementById('capture-section'),
-  captureFullPageBtn: document.getElementById('capture-full-page'),
-  startSelectionBtn: document.getElementById('start-selection'),
-  stopSelectionBtn: document.getElementById('stop-selection'),
-  
-  // Preview
-  previewSection: document.getElementById('preview-section'),
-  previewTitle: document.getElementById('preview-title'),
-  clearPreviewBtn: document.getElementById('clear-preview'),
-  elementInfo: document.getElementById('element-info'),
-  elementTag: document.getElementById('element-tag'),
-  elementSelector: document.getElementById('element-selector'),
-  elementContent: document.getElementById('element-content'),
-  visualPreview: document.getElementById('visual-preview'),
-  previewImage: document.getElementById('preview-image'),
-  pageInfo: document.getElementById('page-info'),
-  pageTitle: document.getElementById('page-title'),
-  pageUrl: document.getElementById('page-url'),
-  submitControls: document.getElementById('submit-controls'),
-  submitContentBtn: document.getElementById('submit-content'),
-  
-  // Activity log
-  activityLog: document.getElementById('activity-log'),
-  
-  // Loading
-  loadingOverlay: document.getElementById('loading-overlay'),
-  loadingMessage: document.getElementById('loading-message')
-};
+let currentConfig = null;
+let capturedData = null;
+let isSelectionMode = false;
 
-// Application state
-let appState = {
-  isConnected: false,
-  config: null,
-  isSelectionMode: false,
-  selectedElement: null,
-  capturedContent: null
-};
-
-// Initialize the application
+// Initialize sidepanel
 function init() {
+  loadConfig();
   setupEventListeners();
-  loadSavedConfig();
-  addLogEntry('Sidepanel initialized');
 }
 
-// Setup event listeners
-function setupEventListeners() {
-  // Configuration
-  elements.toggleKeyBtn.addEventListener('click', toggleKeyVisibility);
-  elements.connectBtn.addEventListener('click', handleConnect);
-  elements.projectKeyInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      handleConnect();
+// Load configuration from storage
+async function loadConfig() {
+  try {
+    const result = await chrome.storage.local.get(['config']);
+    if (result.config) {
+      currentConfig = result.config;
+      setStatus('Ready to capture content. If capture fails, refresh the page first.');
+    } else {
+      setStatus('No project configuration found. Use the popup to connect first.');
+      document.getElementById('status-dot').className = 'status-dot error';
     }
-  });
-  
-  // Capture controls
-  elements.captureFullPageBtn.addEventListener('click', handleFullPageCapture);
-  elements.startSelectionBtn.addEventListener('click', handleStartSelection);
-  elements.stopSelectionBtn.addEventListener('click', handleStopSelection);
-  
-  // Preview controls
-  elements.clearPreviewBtn.addEventListener('click', clearPreview);
-  elements.submitContentBtn.addEventListener('click', handleSubmitContent);
-  
-  // Message listener for background script
+  } catch (error) {
+    console.error('Failed to load config:', error);
+    setStatus('Configuration error');
+    document.getElementById('status-dot').className = 'status-dot error';
+  }
+}
+
+// Setup event listeners with delegation
+function setupEventListeners() {
+  document.addEventListener('click', handleClick);
+  document.addEventListener('change', handleChange);
   chrome.runtime.onMessage.addListener(handleMessage);
 }
 
-// Load saved configuration
-async function loadSavedConfig() {
-  try {
-    const result = await chrome.storage.local.get(['projectKey', 'config']);
-    if (result.projectKey && result.config) {
-      elements.projectKeyInput.value = result.projectKey;
-      updateConnectionStatus(true, result.config);
-      addLogEntry('Restored saved configuration');
-    }
-  } catch (error) {
-    console.error('Failed to load saved config:', error);
-    addLogEntry('Failed to load saved configuration', 'error');
+// Handle all click events
+function handleClick(e) {
+  if (e.target.id === 'capture-btn') {
+    handleCapture();
+  } else if (e.target.id === 'submit-btn') {
+    handleSubmit();
   }
 }
 
-// Toggle project key visibility
-function toggleKeyVisibility() {
-  const input = elements.projectKeyInput;
-  const isPassword = input.type === 'password';
-  input.type = isPassword ? 'text' : 'password';
-  elements.toggleKeyBtn.textContent = isPassword ? '🙈' : '👁️';
-}
-
-// Handle connect button click
-async function handleConnect() {
-  const projectKey = elements.projectKeyInput.value.trim();
-  if (!projectKey) {
-    showError('Please enter a project key');
-    return;
-  }
-  
-  // Basic project key validation
-  try {
-    atob(projectKey);
-  } catch (error) {
-    showError('Invalid project key format (not base64)');
-    return;
-  }
-  
-  showLoading('Connecting to backend...');
-  
-  try {
-    const response = await chrome.runtime.sendMessage({
-      type: 'SET_PROJECT_KEY',
-      projectKey: projectKey
-    });
+// Handle radio button changes
+function handleChange(e) {
+  if (e.target.name === 'capture-method') {
+    updateCaptureButton(e.target.value);
     
-    if (response.success) {
-      updateConnectionStatus(true, response.config);
-      addLogEntry('Successfully connected to backend');
-      showSuccess('Connection established successfully!');
-    } else {
-      throw new Error(response.error || 'Failed to connect');
+    // If switching from element selection mode, stop it
+    if (isSelectionMode && e.target.value === 'full-page') {
+      stopElementSelection();
     }
-  } catch (error) {
-    console.error('Connection failed:', error);
-    showError(`Connection failed: ${error.message}`);
-    updateConnectionStatus(false);
-  } finally {
-    hideLoading();
   }
 }
 
-// Update connection status UI
-function updateConnectionStatus(connected, config = null) {
-  appState.isConnected = connected;
-  appState.config = config;
+// Update capture button based on selected method
+function updateCaptureButton(method) {
+  const button = document.getElementById('capture-btn');
   
-  if (connected && config) {
-    elements.statusDot.className = 'status-dot connected';
-    elements.statusText.textContent = 'Connected';
-    elements.configInfo.style.display = 'block';
-    elements.projectId.textContent = config.projectId;
-    elements.backendUrl.textContent = config.backendUrl;
-    elements.captureSection.style.display = 'block';
+  if (method === 'full-page') {
+    button.innerHTML = '📸 Capture Full Page';
   } else {
-    elements.statusDot.className = 'status-dot disconnected';
-    elements.statusText.textContent = 'Not Connected';
-    elements.configInfo.style.display = 'none';
-    elements.captureSection.style.display = 'none';
-    clearPreview();
+    button.innerHTML = isSelectionMode ? '❌ Stop Selection' : '🎯 Start Element Selection';
   }
 }
 
-// Handle full page capture
-async function handleFullPageCapture() {
-  if (!appState.isConnected) {
-    showError('Please connect to backend first');
+// Handle capture action
+async function handleCapture() {
+  const method = document.querySelector('input[name="capture-method"]:checked').value;
+  
+  if (method === 'full-page') {
+    await captureFullPage();
+  } else {
+    if (isSelectionMode) {
+      stopElementSelection();
+    } else {
+      startElementSelection();
+    }
+  }
+}
+
+// Capture full page
+async function captureFullPage() {
+  if (!currentConfig) {
+    setStatus('No project configuration available');
     return;
   }
   
-  showLoading('Capturing full page...');
-  
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    setStatus('Capturing full page...');
+    disableCaptureButton(true);
     
-    // First get the page content directly from content script
-    console.log('Sending GET_FULL_PAGE_HTML to tab:', tab.id);
-    
-    const pageResponse = await chrome.tabs.sendMessage(tab.id, {
-      type: 'GET_FULL_PAGE_HTML'
-    });
-    
-    console.log('GET_FULL_PAGE_HTML response:', pageResponse);
-    
-    if (!pageResponse || !pageResponse.success) {
-      if (!pageResponse) {
-        throw new Error('Content script not responding. Please refresh the page and try again.');
-      }
-      throw new Error('Failed to capture page content');
-    }
-    
-    // Then submit to backend
-    const submitResponse = await chrome.runtime.sendMessage({
-      type: 'SUBMIT_HTML',
-      html: pageResponse.html,
-      url: pageResponse.url
-    });
-    
-    if (!submitResponse) {
-      throw new Error('No response from background script');
-    }
-    
-    if (submitResponse.success) {
-      appState.capturedContent = {
-        type: 'full-page',
-        html: pageResponse.html,
-        url: pageResponse.url,
-        title: pageResponse.title
-      };
-      
-      showFullPagePreview({
-        title: pageResponse.title,
-        url: pageResponse.url
-      });
-      addLogEntry(`Full page captured: ${pageResponse.title}`);
-    } else {
-      throw new Error(submitResponse.error || 'Submission failed');
-    }
-  } catch (error) {
-    console.error('Full page capture failed:', error);
-    showError(`Capture failed: ${error.message}`);
-  } finally {
-    hideLoading();
-  }
-}
-
-// Handle start element selection
-async function handleStartSelection() {
-  try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
     if (!tab || !tab.id) {
       throw new Error('No active tab found');
     }
     
-    console.log('Sending START_SELECTION to tab:', tab.id);
+    // Check if content script is ready
+    setStatus('Checking content script...');
     
-    const response = await chrome.tabs.sendMessage(tab.id, {
-      type: 'START_SELECTION'
-    });
-    
-    console.log('START_SELECTION response:', response);
-    
-    if (response && response.success) {
-      updateSelectionMode(true);
-      addLogEntry('Element selection mode started');
-    } else {
-      throw new Error(response?.error || 'Failed to start selection');
+    let response;
+    try {
+      response = await chrome.tabs.sendMessage(tab.id, {
+        type: 'GET_FULL_PAGE_HTML'
+      });
+    } catch (connectionError) {
+      // Content script not loaded - try to inject it
+      console.log('Content script not responding, attempting injection...');
+      setStatus('Injecting content script...');
+      
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content-script.js']
+        });
+        
+        // Wait a bit for script to initialize
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Try again
+        response = await chrome.tabs.sendMessage(tab.id, {
+          type: 'GET_FULL_PAGE_HTML'
+        });
+      } catch (injectionError) {
+        console.error('Content script injection failed:', injectionError);
+        throw new Error('Cannot access this page. Try refreshing the page and ensure it\'s not a chrome:// or extension:// page.');
+      }
     }
+    
+    if (!response || !response.success) {
+      throw new Error('Content script failed to capture page content');
+    }
+    
+    capturedData = {
+      type: 'full-page',
+      html: response.html,
+      url: response.url,
+      title: response.title
+    };
+    
+    showPreview();
+    setStatus('Full page captured successfully');
+    
   } catch (error) {
-    console.error('Failed to start selection:', error);
+    console.error('Capture failed:', error);
+    
+    // Provide helpful error messages
+    let errorMessage = error.message;
     if (error.message.includes('Could not establish connection')) {
-      showError('Content script not loaded. Please refresh the page and try again.');
-    } else {
-      showError(`Failed to start selection: ${error.message}`);
+      errorMessage = 'Content script not loaded. Please refresh the page and try again.';
+    } else if (error.message.includes('Cannot access')) {
+      errorMessage = 'Cannot access this page type. Try navigating to a regular website.';
     }
+    
+    setStatus('Capture failed: ' + errorMessage);
+  } finally {
+    disableCaptureButton(false);
   }
 }
 
-// Handle stop element selection
-async function handleStopSelection() {
+// Start element selection
+async function startElementSelection() {
+  try {
+    setStatus('Starting element selection...');
+    disableCaptureButton(true);
+    
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    if (!tab || !tab.id) {
+      throw new Error('No active tab found');
+    }
+    
+    let response;
+    try {
+      response = await chrome.tabs.sendMessage(tab.id, {
+        type: 'START_SELECTION'
+      });
+    } catch (connectionError) {
+      // Content script not loaded - try to inject it
+      console.log('Content script not responding, attempting injection...');
+      setStatus('Injecting content script...');
+      
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content-script.js']
+        });
+        
+        // Wait for script to initialize
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Try again
+        response = await chrome.tabs.sendMessage(tab.id, {
+          type: 'START_SELECTION'
+        });
+      } catch (injectionError) {
+        console.error('Content script injection failed:', injectionError);
+        throw new Error('Cannot access this page. Try refreshing the page and ensure it\'s not a chrome:// or extension:// page.');
+      }
+    }
+    
+    if (response && response.success) {
+      isSelectionMode = true;
+      updateCaptureButton('element-select');
+      setStatus('Click on an element to select it');
+    } else {
+      throw new Error('Failed to start selection mode');
+    }
+    
+  } catch (error) {
+    console.error('Selection start failed:', error);
+    
+    let errorMessage = error.message;
+    if (error.message.includes('Could not establish connection')) {
+      errorMessage = 'Content script not loaded. Please refresh the page and try again.';
+    } else if (error.message.includes('Cannot access')) {
+      errorMessage = 'Cannot access this page type. Try navigating to a regular website.';
+    }
+    
+    setStatus('Failed to start selection: ' + errorMessage);
+  } finally {
+    disableCaptureButton(false);
+  }
+}
+
+// Stop element selection
+async function stopElementSelection() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
-    const response = await chrome.tabs.sendMessage(tab.id, {
+    await chrome.tabs.sendMessage(tab.id, {
       type: 'STOP_SELECTION'
     });
     
-    if (response.success) {
-      updateSelectionMode(false);
-      addLogEntry('Element selection mode stopped');
-    } else {
-      throw new Error(response.error || 'Failed to stop selection');
-    }
+    isSelectionMode = false;
+    updateCaptureButton('element-select');
+    setStatus('Element selection stopped');
+    
   } catch (error) {
     console.error('Failed to stop selection:', error);
-    showError(`Failed to stop selection: ${error.message}`);
+    setStatus('Failed to stop selection');
   }
 }
 
-// Update selection mode UI
-function updateSelectionMode(active) {
-  appState.isSelectionMode = active;
-  
-  if (active) {
-    elements.startSelectionBtn.style.display = 'none';
-    elements.stopSelectionBtn.style.display = 'inline-block';
-  } else {
-    elements.startSelectionBtn.style.display = 'inline-block';
-    elements.stopSelectionBtn.style.display = 'none';
-  }
-}
-
-// Handle messages from content script and background
+// Handle messages from content script
 function handleMessage(message, sender, sendResponse) {
   console.log('Sidepanel received message:', message);
   
-  switch (message.type) {
-    case 'ELEMENT_SELECTED':
-      handleElementSelected(message.element, message.url);
-      break;
-      
-    case 'SELECTION_MODE_STARTED':
-      updateSelectionMode(true);
-      break;
-      
-    case 'SELECTION_MODE_STOPPED':
-      updateSelectionMode(false);
-      break;
-      
-    default:
-      console.warn('Unknown message type:', message.type);
+  if (message.type === 'ELEMENT_SELECTED') {
+    handleElementSelected(message.element, message.url);
   }
 }
 
 // Handle element selection
 function handleElementSelected(element, url) {
-  appState.selectedElement = element;
-  appState.capturedContent = {
+  capturedData = {
     type: 'element',
     html: element.html,
     url: url,
-    element: element
+    title: document.title,
+    element: {
+      tagName: element.tagName,
+      selector: element.selector,
+      textContent: element.textContent
+    }
   };
   
-  showElementPreview(element, url);
-  updateSelectionMode(false);
-  addLogEntry(`Element selected: ${element.tagName}`);
+  isSelectionMode = false;
+  updateCaptureButton('element-select');
+  showPreview();
+  setStatus('Element captured successfully');
 }
 
-// Show full page preview
-function showFullPagePreview(pageInfo) {
-  elements.previewSection.style.display = 'block';
-  elements.previewTitle.textContent = 'Full Page Capture';
+// Show preview of captured content
+function showPreview() {
+  const previewSection = document.getElementById('preview-section');
+  const previewContent = document.getElementById('preview-content');
+  const previewMeta = document.getElementById('preview-meta');
+  const submitButton = document.getElementById('submit-btn');
   
-  // Show page info
-  elements.pageInfo.style.display = 'block';
-  elements.pageTitle.textContent = pageInfo.title;
-  elements.pageUrl.textContent = pageInfo.url;
+  // Show preview section
+  previewSection.style.display = 'block';
   
-  // Hide element info and visual preview
-  elements.elementInfo.style.display = 'none';
-  elements.visualPreview.style.display = 'none';
+  // Update preview content
+  if (capturedData.type === 'full-page') {
+    previewContent.innerHTML = `
+      <div class="text-sm">
+        <div class="font-medium text-success">✓ Full page captured</div>
+        <div class="text-xs text-muted">${formatSize(capturedData.html.length)} of HTML content</div>
+      </div>
+    `;
+  } else {
+    previewContent.innerHTML = `
+      <div class="text-sm">
+        <div class="font-medium text-success">✓ Element captured</div>
+        <div class="text-xs text-muted">
+          ${capturedData.element.tagName.toLowerCase()}: ${capturedData.element.textContent?.substring(0, 50)}...
+        </div>
+      </div>
+    `;
+  }
   
-  // Show submit controls
-  elements.submitControls.style.display = 'block';
+  // Update metadata
+  document.getElementById('page-title').textContent = capturedData.title;
+  document.getElementById('page-url').textContent = capturedData.url;
+  document.getElementById('content-size').textContent = formatSize(capturedData.html.length);
+  previewMeta.style.display = 'block';
+  
+  // Enable submit button
+  submitButton.disabled = false;
 }
 
-// Show element preview
-function showElementPreview(element, url) {
-  elements.previewSection.style.display = 'block';
-  elements.previewTitle.textContent = 'Selected Element';
+// Handle submit to server
+async function handleSubmit() {
+  if (!capturedData || !currentConfig) {
+    setStatus('No content to submit');
+    return;
+  }
   
-  // Show element info
-  elements.elementInfo.style.display = 'block';
-  elements.elementTag.textContent = element.tagName.toLowerCase();
-  elements.elementSelector.textContent = element.selector;
-  elements.elementContent.textContent = element.textContent;
-  
-  // Show page info
-  elements.pageInfo.style.display = 'block';
-  elements.pageTitle.textContent = document.title;
-  elements.pageUrl.textContent = url;
-  
-  // Hide visual preview for now (SnapDOM removed)
-  elements.visualPreview.style.display = 'none';
-  
-  // Show submit controls
-  elements.submitControls.style.display = 'block';
+  try {
+    setStatus('Submitting to server...');
+    document.getElementById('submit-btn').disabled = true;
+    
+    const response = await chrome.runtime.sendMessage({
+      type: 'SUBMIT_HTML',
+      html: capturedData.html,
+      url: capturedData.url
+    });
+    
+    if (response && response.success) {
+      setStatus('✓ Content submitted successfully');
+      clearPreview();
+    } else {
+      throw new Error(response?.error || 'Submission failed');
+    }
+    
+  } catch (error) {
+    console.error('Submit failed:', error);
+    setStatus('Submit failed: ' + error.message);
+  } finally {
+    document.getElementById('submit-btn').disabled = false;
+  }
 }
 
 // Clear preview
 function clearPreview() {
-  elements.previewSection.style.display = 'none';
-  appState.selectedElement = null;
-  appState.capturedContent = null;
-}
-
-// Handle content submission
-async function handleSubmitContent() {
-  if (!appState.capturedContent) {
-    showError('No content to submit');
-    return;
-  }
-  
-  showLoading('Submitting content to backend...');
-  
-  try {
-    const response = await chrome.runtime.sendMessage({
-      type: 'SUBMIT_HTML',
-      html: appState.capturedContent.html,
-      url: appState.capturedContent.url
-    });
-    
-    if (response.success) {
-      addLogEntry(`Content submitted successfully (ID: ${response.result.id})`);
-      clearPreview();
-      showSuccess('Content submitted successfully!');
-    } else {
-      throw new Error(response.error || 'Submission failed');
-    }
-  } catch (error) {
-    console.error('Submission failed:', error);
-    showError(`Submission failed: ${error.message}`);
-  } finally {
-    hideLoading();
-  }
+  document.getElementById('preview-section').style.display = 'none';
+  capturedData = null;
 }
 
 // Utility functions
-function showLoading(message) {
-  elements.loadingMessage.textContent = message;
-  elements.loadingOverlay.style.display = 'flex';
+function setStatus(message) {
+  document.getElementById('status-text').textContent = message;
+  console.log('Status:', message);
 }
 
-function hideLoading() {
-  elements.loadingOverlay.style.display = 'none';
+function disableCaptureButton(disabled) {
+  document.getElementById('capture-btn').disabled = disabled;
 }
 
-function showError(message) {
-  addLogEntry(message, 'error');
-  // Could also show a toast notification here
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+  return Math.round(bytes / (1024 * 1024)) + ' MB';
 }
 
-function showSuccess(message) {
-  addLogEntry(message, 'success');
-  // Could also show a toast notification here
-}
-
-function addLogEntry(message, type = 'info') {
-  const timestamp = new Date().toLocaleTimeString();
-  const entry = document.createElement('div');
-  entry.className = `log-entry ${type}`;
-  entry.innerHTML = `
-    <span class="timestamp">${timestamp}</span>
-    <span class="message">${message}</span>
-  `;
-  
-  // Also log to console for debugging
-  console.log(`[${type.toUpperCase()}] ${timestamp}: ${message}`);
-  
-  elements.activityLog.appendChild(entry);
-  elements.activityLog.scrollTop = elements.activityLog.scrollHeight;
-  
-  // Keep only last 50 entries
-  const entries = elements.activityLog.children;
-  if (entries.length > 50) {
-    elements.activityLog.removeChild(entries[0]);
-  }
-}
-
-// Initialize when DOM is loaded
+// Initialize when DOM ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {

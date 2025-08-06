@@ -4,71 +4,38 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Social Media Research Assistant</title>
-  <style>
-    body {
-      width: 280px;
-      padding: 20px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #007bff, #0056b3);
-      color: white;
-      text-align: center;
-      margin: 0;
-    }
-    
-    .logo {
-      font-size: 24px;
-      margin-bottom: 8px;
-    }
-    
-    h1 {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 16px;
-    }
-    
-    p {
-      font-size: 12px;
-      opacity: 0.9;
-      margin-bottom: 20px;
-      line-height: 1.4;
-    }
-    
-    .open-panel-btn {
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 12px 20px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      width: 100%;
-    }
-    
-    .open-panel-btn:hover {
-      background: rgba(255, 255, 255, 0.3);
-      transform: translateY(-1px);
-    }
-    
-    .version {
-      font-size: 10px;
-      opacity: 0.7;
-      margin-top: 16px;
-    }
-  </style>
+  <link rel="stylesheet" href="../extension.css">
 </head>
 <body>
-  <div class="logo">🔍</div>
-  <h1>Research Assistant</h1>
-  <p>Capture and analyze social media content for research purposes.</p>
-  
-  <button id="open-panel-btn" class="open-panel-btn">
-    Open Side Panel
-  </button>
-  
-  <div class="version">v1.0.0</div>
-  
+  <div class="popup-container">
+    <div class="popup-header">
+      <div class="popup-logo">🔍</div>
+      <h1 class="popup-title">Research Assistant</h1>
+      <p class="popup-subtitle">Enter your project key to start capturing content</p>
+    </div>
+
+    <div class="key-input-group">
+      <div class="key-input-container">
+        <input 
+          type="password" 
+          id="project-key" 
+          class="input"
+          placeholder="Paste your project key here..."
+          autocomplete="off"
+        >
+        <button type="button" id="toggle-visibility" class="key-toggle">👁️</button>
+      </div>
+    </div>
+
+    <div id="connection-status" class="connection-status" style="display: none;"></div>
+
+    <button id="start-scraping" class="btn btn-primary w-full mb-4" disabled>
+      Connect & Start Scraping
+    </button>
+
+    <div class="text-center text-xs text-muted">v1.0.0</div>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-// Content Script for Social Media Research Assistant
+// Content Script for Social Media Research Assistant  
 // Handles DOM interaction, element selection, and visual highlighting
 
 console.log('Content script loaded on:', window.location.href);
@@ -8,6 +8,8 @@ let isSelectionMode = false;
 let selectedElement = null;
 let highlightOverlay = null;
 let selectionOverlay = null;
+let throttleId = null;
+let lastHighlightedElement = null;
 
 // Create visual overlay for element highlighting
 function createHighlightOverlay() {
@@ -21,7 +23,6 @@ function createHighlightOverlay() {
     border: 2px solid #007bff;
     background: rgba(0, 123, 255, 0.1);
     z-index: 999999;
-    transition: all 0.2s ease;
     display: none;
   `;
   document.body.appendChild(overlay);
@@ -88,25 +89,44 @@ function getElementBounds(element) {
   };
 }
 
-// Highlight element on hover
+// Highlight element on hover (optimized with throttling)
 function highlightElement(element) {
-  if (!isSelectionMode) return;
+  if (!isSelectionMode || element === lastHighlightedElement) return;
   
-  const overlay = createHighlightOverlay();
-  const bounds = getElementBounds(element);
+  // Cancel previous animation frame if pending
+  if (throttleId) {
+    cancelAnimationFrame(throttleId);
+  }
   
-  overlay.style.display = 'block';
-  overlay.style.top = bounds.top + 'px';
-  overlay.style.left = bounds.left + 'px';
-  overlay.style.width = bounds.width + 'px';
-  overlay.style.height = bounds.height + 'px';
+  // Throttle using requestAnimationFrame for smooth 60fps updates
+  throttleId = requestAnimationFrame(() => {
+    const overlay = createHighlightOverlay();
+    const bounds = getElementBounds(element);
+    
+    // Batch style updates to avoid multiple reflows
+    overlay.style.cssText += `
+      display: block;
+      top: ${bounds.top}px;
+      left: ${bounds.left}px;
+      width: ${bounds.width}px;
+      height: ${bounds.height}px;
+    `;
+    
+    lastHighlightedElement = element;
+    throttleId = null;
+  });
 }
 
 // Hide highlight overlay
 function hideHighlight() {
+  if (throttleId) {
+    cancelAnimationFrame(throttleId);
+    throttleId = null;
+  }
   if (highlightOverlay) {
     highlightOverlay.style.display = 'none';
   }
+  lastHighlightedElement = null;
 }
 
 // Start element selection mode
@@ -135,12 +155,18 @@ function startElementSelection() {
   });
 }
 
-// Stop element selection mode
+// Stop element selection mode  
 function stopElementSelection() {
   if (!isSelectionMode) return;
   
   console.log('Stopping element selection mode');
   isSelectionMode = false;
+  
+  // Cancel any pending animation frames
+  if (throttleId) {
+    cancelAnimationFrame(throttleId);
+    throttleId = null;
+  }
   
   // Remove event listeners
   document.removeEventListener('mouseover', handleMouseOver, true);
@@ -150,12 +176,19 @@ function stopElementSelection() {
   // Reset cursor
   document.body.style.cursor = '';
   
-  // Hide overlays
+  // Clean up overlays
   hideHighlight();
   if (selectionOverlay) {
     selectionOverlay.remove();
     selectionOverlay = null;
   }
+  if (highlightOverlay) {
+    highlightOverlay.remove();
+    highlightOverlay = null;
+  }
+  
+  // Reset state
+  lastHighlightedElement = null;
   
   // Notify sidepanel
   chrome.runtime.sendMessage({
@@ -163,15 +196,16 @@ function stopElementSelection() {
   });
 }
 
-// Handle mouse over events
+// Handle mouse over events (optimized)
 function handleMouseOver(event) {
   if (!isSelectionMode) return;
   
+  // Skip our own overlays early
+  if (event.target.id?.startsWith('smra-')) return;
+  
+  // Only prevent default if we're actually going to highlight
   event.preventDefault();
   event.stopPropagation();
-  
-  // Skip our own overlays
-  if (event.target.id?.startsWith('smra-')) return;
   
   highlightElement(event.target);
 }
@@ -198,13 +232,14 @@ async function handleClick(event) {
   // Generate preview
   const preview = await generateElementPreview(selectedElement);
   
-  // Get element info
+  // Get element info (optimized - limit HTML size)
+  const outerHTML = selectedElement.outerHTML;
   const elementInfo = {
     tagName: selectedElement.tagName,
     id: selectedElement.id,
     className: selectedElement.className,
-    textContent: selectedElement.textContent?.substring(0, 100) + '...',
-    html: selectedElement.outerHTML,
+    textContent: selectedElement.textContent?.substring(0, 200) + '...',
+    html: outerHTML.length > 50000 ? outerHTML.substring(0, 50000) + '...[truncated]' : outerHTML,
     selector: generateElementSelector(selectedElement),
     preview: preview?.preview || null,
     bounds: preview?.bounds || getElementBounds(selectedElement)
@@ -306,9 +341,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-// Clean up on page unload
+// Clean up on page unload  
 window.addEventListener('beforeunload', () => {
   stopElementSelection();
+  // Force cleanup of any remaining resources
+  if (throttleId) {
+    cancelAnimationFrame(throttleId);
+    throttleId = null;
+  }
 });
 
 console.log('Content script initialized');
