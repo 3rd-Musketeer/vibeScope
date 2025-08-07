@@ -1,4 +1,4 @@
-// Content Script for Social Media Research Assistant  
+// Content Script for vibeScope  
 // Handles DOM interaction, element selection, and visual highlighting
 
 console.log('Content script loaded on:', window.location.href);

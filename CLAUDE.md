@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **social media research assistant** (产品调研助手) built for analyzing user-generated content from Chinese social media platforms like 小红书 (Xiaohongshu/RedNote), Zhihu, and WeChat public accounts. The system extracts and analyzes authentic market feedback and user insights for AI companion product research.
+This is **vibeScope** - a natural language driven content analysis platform built for analyzing user-generated content from social media platforms like 小红书 (Xiaohongshu/RedNote), Zhihu, and WeChat public accounts. The system extracts and analyzes authentic market feedback and user insights for content research.
 
 ## Architecture
 

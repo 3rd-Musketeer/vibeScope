@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { QUERY_KEYS, POLLING_INTERVAL } from '@/lib/constants'
 import { useStore } from '@/lib/store'
-import type { ExtractedContentResponse } from '@/lib/types'
+import type { ExtractedContentResponse, TaskCreateRequest } from '@/lib/types'
 
 export function useTasks(projectId: string | null, status?: string) {
   const { currentProjectToken } = useStore()
@@ -20,7 +20,7 @@ export function useCreateTask() {
   const { currentProjectToken } = useStore()
   
   return useMutation({
-    mutationFn: (request: any) => api.createTask(request, currentProjectToken!),
+    mutationFn: (request: TaskCreateRequest) => api.createTask(request, currentProjectToken!),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ 
         queryKey: [...QUERY_KEYS.TASKS, data.project_id] 
@@ -129,12 +129,3 @@ export function useSuccessfulTasks(projectId: string | null) {
   })
 }
 
-// Legacy hook for backward compatibility
-export function useSuccessfulTasksLegacy(projectId: string | null) {
-  return useQuery({
-    queryKey: [...QUERY_KEYS.TASKS, projectId, 'successful-legacy'],
-    queryFn: () => api.getSuccessfulTasks(projectId!),
-    enabled: !!projectId,
-    refetchInterval: POLLING_INTERVAL
-  })
-}

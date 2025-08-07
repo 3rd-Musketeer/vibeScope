@@ -24,6 +24,16 @@ class ProjectCreateRequest(BaseModel):
     name: str = Field(description="Project name")
 
 
+# Authentication Models
+class LoginRequest(BaseModel):
+    password: str = Field(description="System authentication password")
+
+
+class LoginResponse(BaseModel):
+    token: str = Field(description="JWT authentication token")
+    message: str = Field(description="Login success message")
+
+
 # Query/RAG Models
 class QueryRequest(BaseModel):
     project_id: str = Field(description="Project ID to query")

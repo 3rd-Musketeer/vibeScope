@@ -6,8 +6,16 @@ import { useStore } from '@/lib/store'
 export function useProjects() {
   return useQuery({
     queryKey: QUERY_KEYS.PROJECTS,
-    queryFn: api.getProjects,
-    refetchInterval: POLLING_INTERVAL
+    queryFn: async () => {
+      try {
+        return await api.getProjects()
+      } catch (error) {
+        console.error('Failed to fetch projects:', error)
+        return [] // Return empty array on error
+      }
+    },
+    refetchInterval: POLLING_INTERVAL,
+    retry: false // Don't retry on auth failures
   })
 }
 
@@ -17,6 +25,21 @@ export function useCreateProject() {
   return useMutation({
     mutationFn: api.createProject,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS })
+    }
+  })
+}
+
+export function useDeleteProject() {
+  const queryClient = useQueryClient()
+  const { setCurrentProject } = useStore()
+  
+  return useMutation({
+    mutationFn: ({ projectId, token }: { projectId: string, token: string }) => 
+      api.deleteProject(projectId, token),
+    onSuccess: () => {
+      // Clear current project if it was deleted
+      setCurrentProject('', '')
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS })
     }
   })

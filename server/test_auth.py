@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Test authentication system"""
 
+
 import requests
-import json
+
 
 def test_auth():
-    base_url = "http://localhost:8000"
-    
+    base_url = "https://api.onehalf.tech"
+
     print("🧪 Testing authentication system...")
-    
+
     # Test unauthenticated access should fail
     try:
         response = requests.get(f"{base_url}/projects", timeout=5)
@@ -18,16 +19,16 @@ def test_auth():
     except requests.exceptions.RequestException as e:
         print(f"❌ Error testing unauthenticated access: {e}")
         return
-    
+
     # Test login
     try:
         login_data = {"password": "research_system_2025"}
         response = requests.post(
-            f"{base_url}/auth/login", 
+            f"{base_url}/auth/login",
             json=login_data,
             timeout=5
         )
-        
+
         if response.status_code == 200:
             token = response.json().get("token")
             print(f"✅ Login successful, token: {token[:20]}...")
@@ -37,12 +38,12 @@ def test_auth():
     except requests.exceptions.RequestException as e:
         print(f"❌ Error testing login: {e}")
         return
-    
+
     # Test authenticated access
     try:
         headers = {"Authorization": f"Bearer {token}"}
         response = requests.get(f"{base_url}/projects", headers=headers, timeout=5)
-        
+
         if response.status_code == 200:
             projects = response.json()
             print(f"✅ Authenticated access successful, found {len(projects)} projects")
@@ -50,21 +51,21 @@ def test_auth():
             print(f"❌ Authenticated access failed: {response.status_code} - {response.text}")
     except requests.exceptions.RequestException as e:
         print(f"❌ Error testing authenticated access: {e}")
-    
+
     # Test auth key generation if we have projects
     if projects:
         try:
             project_id = projects[0]["id"]
             response = requests.post(
-                f"{base_url}/projects/{project_id}/auth-key", 
+                f"{base_url}/projects/{project_id}/auth-key",
                 headers=headers,
                 timeout=5
             )
-            
+
             if response.status_code == 200:
                 auth_key = response.json().get("key")
                 print(f"✅ Auth key generation successful: {auth_key[:30]}...")
-                
+
                 # Test decode
                 import base64
                 decoded = base64.b64decode(auth_key).decode()

@@ -1,4 +1,4 @@
-// Mock Backend Server for Social Media Research Assistant
+// Mock Backend Server for vibeScope
 // Mimics the FastAPI backend endpoints for extension testing
 
 const express = require('express');
@@ -138,7 +138,7 @@ async function callExtractor(html, url) {
 // Health check
 app.get('/', (req, res) => {
   res.json({
-    message: 'Social Media Research Assistant Mock Server',
+    message: 'vibeScope Mock Server',
     version: '1.0.0',
     status: 'running',
     endpoints: [
@@ -834,7 +834,7 @@ app.use((req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log('\n🚀 Social Media Research Assistant Mock Server');
+  console.log('\n🚀 vibeScope Mock Server');
   console.log(`📍 Running on http://localhost:${PORT}`);
   console.log('\n📊 Initial Data:');
   console.log(`   Projects: ${storage.projects.length}`);

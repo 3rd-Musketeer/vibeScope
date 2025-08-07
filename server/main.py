@@ -1,6 +1,22 @@
+import logging
 import os
 
 from dotenv import load_dotenv
+
+# Configure detailed logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),  # Console output
+        logging.FileHandler('server.log', encoding='utf-8')  # File output
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Set specific loggers to DEBUG for detailed troubleshooting
+logging.getLogger('rag_service').setLevel(logging.DEBUG)
+logging.getLogger('server').setLevel(logging.DEBUG)
 
 
 def validate_environment() -> None:

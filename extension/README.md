@@ -1,4 +1,4 @@
-# Social Media Research Assistant - Chrome Extension
+# vibeScope - Chrome Extension
 
 Modern, lightweight Chrome extension for seamless HTML content capture from web pages. Features a clean UI with popup-based project key validation and sidepanel capture interface.
 

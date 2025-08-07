@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **complete production-ready backend** for a social media research assistant tool that crawls and analyzes content from platforms like Xiaohongshu (Little Red Book). The implementation features a FastAPI server with task queue management, real-time processing, and comprehensive data persistence.
+This is a **complete production-ready backend** for vibeScope, a natural language driven content analysis platform that crawls and analyzes content from any website. The implementation features a FastAPI server with task queue management, real-time processing, and comprehensive data persistence.
 
 ## Architecture
 

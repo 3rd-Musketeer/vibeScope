@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Social Media Research Assistant",
+  "name": "vibeScope",
   "version": "1.0.0",
-  "description": "Capture and analyze social media content for research purposes",
+  "description": "Natural Language Driven Content Analysis Platform",
   
   "permissions": [
     "activeTab",
@@ -33,7 +33,7 @@
   
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "Social Media Research Assistant",
+    "default_title": "vibeScope",
     "default_icon": {
       "16": "icons/icon16.svg",
       "48": "icons/icon48.svg",

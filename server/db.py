@@ -47,13 +47,13 @@ def get_project_by_token(token: str) -> dict[str, Any] | None:
     """Get project by auth token"""
     if not token:
         return None
-    
+
     db = TinyDB("data/projects.json")
     Project = Query()
-    
+
     projects = db.search(Project.auth_token == token)
     db.close()
-    
+
     return projects[0] if projects else None
 
 
@@ -201,7 +201,7 @@ if __name__ == "__main__":
     test_task = DBSchema(
         id=str(uuid.uuid4()),
         project_id="test-project-123",
-        url="https://xiaohongshu.com/item/123",
+        url="https://example.com/content/123",
         html=None,
         base_content=BaseContentModel(
             title="Test Note",

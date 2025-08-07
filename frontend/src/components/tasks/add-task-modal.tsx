@@ -11,6 +11,7 @@ import { Plus, Chrome, Download, Settings } from 'lucide-react'
 import { useCreateTask } from '@/hooks/use-tasks'
 import { useStore } from '@/lib/store'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { TaskCreateRequest } from '@/lib/types'
 
 export function AddTaskModal() {
   const [open, setOpen] = useState(false)
@@ -26,10 +27,9 @@ export function AddTaskModal() {
       return
     }
     
-    const taskData = {
+    const taskData: TaskCreateRequest = {
       project_id: currentProjectId,
-      url: activeTab === 'url' ? url : undefined,
-      html: activeTab === 'html' ? html : undefined
+      ...(activeTab === 'url' ? { url: url.trim() } : { html: html.trim() })
     }
     
     createTask(taskData, {
@@ -79,7 +79,7 @@ export function AddTaskModal() {
                 <Label htmlFor="url">网页 URL</Label>
                 <Input
                   id="url"
-                  placeholder="https://xiaohongshu.com/item/..."
+                  placeholder="https://example.com/page..."
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                 />
@@ -129,7 +129,7 @@ export function AddTaskModal() {
                     </div>
                     <div className="flex-1">
                       <h4 className="text-sm font-medium">2. 配置认证密钥</h4>
-                      <p className="text-sm text-muted-foreground">点击页面顶部的"Extension Setup"按钮生成认证密钥</p>
+                      <p className="text-sm text-muted-foreground">点击页面顶部的&ldquo;Extension Setup&rdquo;按钮生成认证密钥</p>
                     </div>
                   </div>
                   

@@ -93,7 +93,7 @@ async function validateKey(token) {
     // Validate token with backend
     showStatus('Validating...', 'info');
     
-    const response = await fetch(`http://localhost:8000/projects/by-token/${token}`);
+    const response = await fetch(`https://api.onehalf.tech/projects/by-token/${token}`);
     
     if (!response.ok) {
       throw new Error('Invalid token');
@@ -105,7 +105,7 @@ async function validateKey(token) {
     await chrome.storage.local.set({ 
       projectToken: token,
       config: { 
-        backendUrl: 'http://localhost:8000',
+        backendUrl: 'https://api.onehalf.tech',
         projectId: project.id, 
         projectName: project.name,
         token: token

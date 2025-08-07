@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "产品调研助手",
-  description: "社交媒体内容爬取与分析工具",
+  title: "vibeScope",
+  description: "Natural Language Driven Content Analysis Platform",
 };
 
 export default function RootLayout({

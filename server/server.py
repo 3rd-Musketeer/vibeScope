@@ -1,16 +1,21 @@
+import logging
+import os
 import secrets
 import uuid
-import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException, Query, Depends
+import jwt
+
+from fastapi import Depends, FastAPI, HTTPException, Header, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from api_schema import (
     ExtractedContentResponse,
+    LoginRequest,
+    LoginResponse,
     ProjectCreateRequest,
     ProjectSchema,
     ProjectStatsResponse,
@@ -32,7 +37,7 @@ from db import (
 from rag_service import query_project_notes
 from task_queue import TaskQueue
 
-app = FastAPI(title="Social Media Research Assistant", version="0.1.0")
+app = FastAPI(title="vibeScope", version="0.1.0")
 security = HTTPBearer(auto_error=False)
 
 app.add_middleware(
@@ -52,14 +57,60 @@ def verify_project_token(credentials: Optional[HTTPAuthorizationCredentials] = D
     """Dependency to verify project auth token"""
     if not credentials:
         raise HTTPException(status_code=401, detail="Authorization header required")
-    
+
     token = credentials.credentials
     project = get_project_by_token(token)
-    
+
     if not project:
         raise HTTPException(status_code=401, detail="Invalid project token")
-    
+
     return project
+
+
+def verify_system_token(authorization: str = Header(None)):
+    """Verify system authentication token"""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
+    
+    token = authorization.split(" ")[1]
+    try:
+        # Use SYSTEM_AUTH_PASSWORD as JWT secret
+        secret = os.getenv("SYSTEM_AUTH_PASSWORD")
+        if not secret:
+            raise HTTPException(status_code=500, detail="System authentication not configured")
+        
+        payload = jwt.decode(token, secret, algorithms=["HS256"])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+# Authentication endpoint
+@app.post("/auth/login", response_model=LoginResponse)
+def login(request: LoginRequest):
+    """System authentication endpoint"""
+    system_password = os.getenv("SYSTEM_AUTH_PASSWORD")
+    if not system_password:
+        raise HTTPException(status_code=500, detail="System authentication not configured")
+    
+    if request.password != system_password:
+        raise HTTPException(status_code=401, detail="Invalid password")
+    
+    # Generate JWT token with 24-hour expiration
+    payload = {
+        "exp": datetime.utcnow() + timedelta(hours=24),
+        "iat": datetime.utcnow(),
+        "type": "system_auth"
+    }
+    
+    token = jwt.encode(payload, system_password, algorithm="HS256")
+    
+    return LoginResponse(
+        token=token,
+        message="Login successful"
+    )
 
 
 # Add new endpoint for extension to get project info by token
@@ -69,7 +120,7 @@ async def get_project_by_token_endpoint(token: str) -> dict[str, str]:
     project = get_project_by_token(token)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+
     return {"id": project["id"], "name": project["name"]}
 
 
@@ -166,19 +217,19 @@ async def delete_task(task_id: str, project: dict = Depends(verify_project_token
 
 
 @app.get("/projects", response_model=list[ProjectSchema])
-async def list_projects() -> list[ProjectSchema]:
+async def list_projects(system_auth: dict = Depends(verify_system_token)) -> list[ProjectSchema]:
     projects = get_projects()
     return [ProjectSchema(**project) for project in projects]
 
 
 @app.post("/projects", response_model=ProjectSchema)
-async def create_project(request: ProjectCreateRequest) -> ProjectSchema:
+async def create_project(request: ProjectCreateRequest, system_auth: dict = Depends(verify_system_token)) -> ProjectSchema:
     if not request.name:
         raise HTTPException(status_code=400, detail="name is required")
 
     project_id = str(uuid.uuid4())
     auth_token = secrets.token_urlsafe(32)  # Generate auth token
-    
+
     project_data = {
         "id": project_id,
         "name": request.name,
@@ -355,13 +406,24 @@ async def get_queue_status(project: dict = Depends(verify_project_token)) -> dic
 @app.post("/query", response_model=QueryResponse)
 async def query_project(request: QueryRequest, project: dict = Depends(verify_project_token)) -> QueryResponse:
     """Query project notes using two-factor RAG pipeline"""
+    logging.info(f"Query request received: project_id={request.project_id}, question_length={len(request.question)}")
+
     if not request.project_id:
+        logging.error("Query failed: project_id is required")
         raise HTTPException(status_code=400, detail="project_id is required")
 
     if not request.question.strip():
+        logging.error("Query failed: question cannot be empty")
         raise HTTPException(status_code=400, detail="question cannot be empty")
 
-    return await query_project_notes(request.project_id, request.question)
+    try:
+        logging.info(f"Starting query processing for project {request.project_id}")
+        result = await query_project_notes(request.project_id, request.question)
+        logging.info(f"Query completed successfully: {len(result.relevant_note_ids)} relevant notes found")
+        return result
+    except Exception as e:
+        logging.error(f"Query failed with exception: {type(e).__name__}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 
@@ -370,12 +432,12 @@ async def query_project(request: QueryRequest, project: dict = Depends(verify_pr
 async def startup_event():
     # Get logger instance for startup
     startup_logger = logging.getLogger(__name__)
-    startup_logger.info("Starting up Social Media Research Assistant")
-    
+    startup_logger.info("Starting up vibeScope")
+
     init_db()
     startup_logger.info("Database initialized")
-    
-    
+
+
     import asyncio
     asyncio.create_task(task_queue.start_dispatcher())
     startup_logger.info("Task queue dispatcher started")
@@ -397,7 +459,6 @@ if __name__ == "__main__":
     print("✓ Environment validation passed")
 
     init_db()
-    init_auth_tables()
     main_logger = logging.getLogger(__name__)
     main_logger.info("✓ Database and auth tables initialized")
     print("✓ Database and auth tables initialized")

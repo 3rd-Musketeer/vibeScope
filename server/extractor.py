@@ -159,7 +159,7 @@ class InstructorExtractor:
 
         if html:
             markdown, cleaned_html = await self.process_html_to_formats(html)
-            base_url = self.get_base_url(url) if url else "https://www.xiaohongshu.com"
+            base_url = self.get_base_url(url) if url else "https://example.com"
         else:
             async with AsyncWebCrawler(config=self.browser_config) as crawler:
                 result = await crawler.arun(url=url, config=self.crawler_config)
@@ -268,7 +268,7 @@ if __name__ == "__main__":
 
             print("Testing note extraction with HTML...")
             note_result = await extractor.extract_note(
-                url="https://www.xiaohongshu.com/explore/test", html=html_content
+                url="https://example.com/content/test", html=html_content
             )
             print("✓ Note extraction successful")
             print(f"Title: {note_result['title']}")

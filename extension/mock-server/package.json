@@ -1,7 +1,7 @@
 {
-  "name": "smra-mock-server",
+  "name": "vibescope-mock-server",
   "version": "1.0.0",
-  "description": "Mock backend server for Social Media Research Assistant testing",
+  "description": "Mock backend server for vibeScope testing",
   "main": "mock-backend.js",
   "scripts": {
     "start": "node mock-backend.js",
@@ -16,6 +16,6 @@
     "nodemon": "^3.0.1"
   },
   "keywords": ["mock", "server", "extension", "testing"],
-  "author": "Social Media Research Assistant",
+  "author": "vibeScope",
   "license": "MIT"
 }

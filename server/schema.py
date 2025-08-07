@@ -66,12 +66,12 @@ class ProjectStatsResponse(BaseModel):
     )
 
 
-class RedNoteCommentSchema(BaseModel):
+class CommentSchema(BaseModel):
     comment: str = Field(default="", description="Comment of the note")
     reply_to_comment: str = Field(default="", description="First reply to the comment")
 
 
-class RedNoteSchema(BaseModel):
+class ContentSchema(BaseModel):
     title: str = Field(default="", description="Title of the note")
     content: str = Field(default="", description="Content of the note by the author")
     tags: list[str] = Field(
@@ -91,12 +91,12 @@ class RedNoteSchema(BaseModel):
     author_name: str = Field(default="", description="Author name")
     author_avatar_url: str = Field(default="", description="Author avatar url")
     author_profile_url: str = Field(default="", description="Author profile url")
-    comments: list[RedNoteCommentSchema] = Field(
+    comments: list[CommentSchema] = Field(
         default_factory=list, description="Comments of the note"
     )
 
 
-class RedNoteUserProfileSchema(BaseModel):
+class UserProfileSchema(BaseModel):
     location: str = Field(default="未知", description="IP location of the user")
     author_name: str = Field(default="", description="Author name")
     author_avatar_url: str = Field(default="", description="Author avatar url")
@@ -164,12 +164,12 @@ class AuthorProfileModel(BaseModel):
     )
 
 
-class RedNoteDBSchema(BaseModel):
+class ContentDBSchema(BaseModel):
     id: str = Field(description="Unique note identifier")
     url: Optional[str] = Field(default=None, description="URL of the note")
     html: Optional[str] = Field(default=None, description="HTML content of the note")
-    note_content: RedNoteSchema = Field(description="Note content")
-    user_profile: RedNoteUserProfileSchema = Field(description="User profile")
+    note_content: ContentSchema = Field(description="Note content")
+    user_profile: UserProfileSchema = Field(description="User profile")
     image_assets: list[str] = Field(
         default_factory=list, description="Asset UUIDs for images"
     )
@@ -189,7 +189,7 @@ if __name__ == "__main__":
     task_data = {
         "id": str(uuid.uuid4()),
         "project_id": "test-project",
-        "url": "https://xiaohongshu.com/item/123",
+        "url": "https://example.com/content/123",
         "html": None,
         "status": "pending",
         "created_at": datetime.now(),
@@ -211,7 +211,7 @@ if __name__ == "__main__":
 
     request_data = {
         "project_id": "test-project",
-        "url": "https://xiaohongshu.com/item/123",
+        "url": "https://example.com/content/123",
     }
 
     request = TaskCreateRequest(**request_data)
@@ -236,7 +236,7 @@ if __name__ == "__main__":
 
     db_task_data = {
         "id": str(uuid.uuid4()),
-        "url": "https://xiaohongshu.com/item/123",
+        "url": "https://example.com/content/123",
         "html": None,
         "note_content": {
             "title": "Test Note",
@@ -270,7 +270,7 @@ if __name__ == "__main__":
         "processing_time_seconds": 30,
     }
 
-    db_task = RedNoteDBSchema(**db_task_data)
-    print(f"✓ RedNoteDBSchema validation passed: {db_task.note_content.title}")
+    db_task = ContentDBSchema(**db_task_data)
+    print(f"✓ ContentDBSchema validation passed: {db_task.note_content.title}")
 
     print("All schema validations completed successfully!")
