@@ -58,6 +58,16 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 task_queue = TaskQueue()
 
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Docker and load balancers"""
+    return {
+        "status": "healthy",
+        "service": "vibeScope",
+        "version": "0.1.0"
+    }
+
+
 def verify_project_token(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
     """Dependency to verify project auth token"""
     if not credentials:
