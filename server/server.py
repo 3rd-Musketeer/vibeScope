@@ -48,6 +48,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Create static directory if it doesn't exist
+static_dir = "static"
+if not os.path.exists(static_dir):
+    os.makedirs(static_dir)
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 task_queue = TaskQueue()
