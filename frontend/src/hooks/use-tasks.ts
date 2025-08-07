@@ -1,22 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { QUERY_KEYS, POLLING_INTERVAL } from '@/lib/constants'
+import { useStore } from '@/lib/store'
 import type { ExtractedContentResponse } from '@/lib/types'
 
 export function useTasks(projectId: string | null, status?: string) {
+  const { currentProjectToken } = useStore()
+  
   return useQuery({
     queryKey: [...QUERY_KEYS.TASKS, projectId, status],
-    queryFn: () => api.getTasks(projectId!, status),
-    enabled: !!projectId,
+    queryFn: () => api.getTasks(projectId!, currentProjectToken!, status),
+    enabled: !!projectId && !!currentProjectToken,
     refetchInterval: POLLING_INTERVAL
   })
 }
 
 export function useCreateTask() {
   const queryClient = useQueryClient()
+  const { currentProjectToken } = useStore()
   
   return useMutation({
-    mutationFn: api.createTask,
+    mutationFn: (request: any) => api.createTask(request, currentProjectToken!),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ 
         queryKey: [...QUERY_KEYS.TASKS, data.project_id] 
@@ -30,9 +34,10 @@ export function useCreateTask() {
 
 export function useRetryTask() {
   const queryClient = useQueryClient()
+  const { currentProjectToken } = useStore()
   
   return useMutation({
-    mutationFn: api.retryTask,
+    mutationFn: (taskId: string) => api.retryTask(taskId, currentProjectToken!),
     onMutate: async (taskId) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEYS.TASKS })
       
@@ -70,9 +75,10 @@ export function useRetryTask() {
 
 export function useDeleteTask() {
   const queryClient = useQueryClient()
+  const { currentProjectToken } = useStore()
   
   return useMutation({
-    mutationFn: api.deleteTask,
+    mutationFn: (taskId: string) => api.deleteTask(taskId, currentProjectToken!),
     onMutate: async (taskId) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEYS.TASKS })
       
@@ -102,18 +108,23 @@ export function useDeleteTask() {
 }
 
 export function useQueueStatus() {
+  const { currentProjectToken } = useStore()
+  
   return useQuery({
     queryKey: QUERY_KEYS.QUEUE_STATUS,
-    queryFn: api.getQueueStatus,
+    queryFn: () => api.getQueueStatus(currentProjectToken!),
+    enabled: !!currentProjectToken,
     refetchInterval: POLLING_INTERVAL
   })
 }
 
 export function useSuccessfulTasks(projectId: string | null) {
+  const { currentProjectToken } = useStore()
+  
   return useQuery({
     queryKey: [...QUERY_KEYS.TASKS, projectId, 'successful'],
-    queryFn: () => api.getExtractedContent(projectId!),
-    enabled: !!projectId,
+    queryFn: () => api.getExtractedContent(projectId!, currentProjectToken!),
+    enabled: !!projectId && !!currentProjectToken,
     refetchInterval: POLLING_INTERVAL
   })
 }

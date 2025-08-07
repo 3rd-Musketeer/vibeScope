@@ -2,6 +2,7 @@ import { Header } from '@/components/layout/header'
 import { MainArea } from '@/components/layout/main-area'
 import { RightSidebar } from '@/components/layout/right-sidebar'
 import { Footer } from '@/components/layout/footer'
+import { LogViewer } from '@/components/debug/log-viewer'
 
 export default function Dashboard() {
   return (
@@ -12,6 +13,7 @@ export default function Dashboard() {
         <RightSidebar />
       </div>
       <Footer />
+      <LogViewer />
     </div>
   )
 }

@@ -1425,45 +1425,6 @@ wheels = [
 ]
 
 [[package]]
-name = "mincra-server"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "crawl4ai" },
-    { name = "fastapi" },
-    { name = "httpx" },
-    { name = "instructor" },
-    { name = "openai" },
-    { name = "pillow" },
-    { name = "pydantic" },
-    { name = "python-dotenv" },
-    { name = "tinydb" },
-    { name = "uvicorn" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "crawl4ai", specifier = ">=0.7.2" },
-    { name = "fastapi", specifier = ">=0.116.1" },
-    { name = "httpx", specifier = ">=0.28.1" },
-    { name = "instructor", specifier = ">=1.10.0" },
-    { name = "openai", specifier = ">=1.98.0" },
-    { name = "pillow", specifier = ">=11.3.0" },
-    { name = "pydantic", specifier = ">=2.11.7" },
-    { name = "python-dotenv", specifier = ">=1.1.1" },
-    { name = "tinydb", specifier = ">=4.8.2" },
-    { name = "uvicorn", specifier = ">=0.35.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "ruff", specifier = ">=0.12.7" }]
-
-[[package]]
 name = "multidict"
 version = "6.6.3"
 source = { registry = "https://pypi.org/simple" }
@@ -3195,6 +3156,45 @@ sdist = { url = "https://files.pythonhosted.org/packages/5e/42/e0e305207bb88c6b8
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d2/e2/dc81b1bd1dcfe91735810265e9d26bc8ec5da45b4c0f6237e286819194c3/uvicorn-0.35.0-py3-none-any.whl", hash = "sha256:197535216b25ff9b785e29a0b79199f55222193d47f820816e7da751e9bc8d4a", size = 66406 },
 ]
+
+[[package]]
+name = "vibescope-server"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "crawl4ai" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "instructor" },
+    { name = "openai" },
+    { name = "pillow" },
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "tinydb" },
+    { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "crawl4ai", specifier = ">=0.7.2" },
+    { name = "fastapi", specifier = ">=0.116.1" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "instructor", specifier = ">=1.10.0" },
+    { name = "openai", specifier = ">=1.98.0" },
+    { name = "pillow", specifier = ">=11.3.0" },
+    { name = "pydantic", specifier = ">=2.11.7" },
+    { name = "python-dotenv", specifier = ">=1.1.1" },
+    { name = "tinydb", specifier = ">=4.8.2" },
+    { name = "uvicorn", specifier = ">=0.35.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "ruff", specifier = ">=0.12.7" }]
 
 [[package]]
 name = "xxhash"

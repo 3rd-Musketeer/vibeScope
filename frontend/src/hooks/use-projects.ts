@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { QUERY_KEYS, POLLING_INTERVAL } from '@/lib/constants'
+import { useStore } from '@/lib/store'
 
 export function useProjects() {
   return useQuery({
@@ -22,17 +23,21 @@ export function useCreateProject() {
 }
 
 export function useProjectStats(projectId: string | null) {
+  const { currentProjectToken } = useStore()
+  
   return useQuery({
     queryKey: [...QUERY_KEYS.PROJECT_STATS, projectId],
-    queryFn: () => api.getProjectStats(projectId!),
-    enabled: !!projectId,
+    queryFn: () => api.getProjectStats(projectId!, currentProjectToken!),
+    enabled: !!projectId && !!currentProjectToken,
     refetchInterval: POLLING_INTERVAL
   })
 }
 
 export function useExportProject() {
+  const { currentProjectToken } = useStore()
+  
   return useMutation({
-    mutationFn: api.exportProjectData,
+    mutationFn: (projectId: string) => api.exportProjectData(projectId, currentProjectToken!),
     onSuccess: (data, projectId) => {
       const blob = new Blob([JSON.stringify(data, null, 2)], { 
         type: 'application/json' 

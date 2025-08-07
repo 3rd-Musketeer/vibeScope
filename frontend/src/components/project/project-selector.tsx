@@ -33,7 +33,7 @@ export function ProjectSelector() {
     if (searchQuery.trim()) {
       createProject(searchQuery.trim(), {
         onSuccess: (newProject) => {
-          setCurrentProject(newProject.id)
+          setCurrentProject(newProject.id, newProject.auth_token)
           setSearchQuery('')
           setShowDropdown(false)
         }
@@ -42,9 +42,12 @@ export function ProjectSelector() {
   }
   
   const handleSelectProject = (projectId: string) => {
-    setCurrentProject(projectId)
-    setSearchQuery('')
-    setShowDropdown(false)
+    const project = projects.find(p => p.id === projectId)
+    if (project) {
+      setCurrentProject(projectId, project.auth_token)
+      setSearchQuery('')
+      setShowDropdown(false)
+    }
   }
 
   return (

@@ -15,6 +15,11 @@ def init_db() -> None:
     successful_tasks_db.close()
 
 
+def get_db() -> TinyDB:
+    """Get the main database instance"""
+    return TinyDB("data/main.json")
+
+
 def save_project(project: dict[str, Any]) -> None:
     if not project.get("id"):
         raise ValueError("project id is required")
@@ -36,6 +41,20 @@ def get_projects() -> list[dict[str, Any]]:
     projects = db.all()
     db.close()
     return projects
+
+
+def get_project_by_token(token: str) -> dict[str, Any] | None:
+    """Get project by auth token"""
+    if not token:
+        return None
+    
+    db = TinyDB("data/projects.json")
+    Project = Query()
+    
+    projects = db.search(Project.auth_token == token)
+    db.close()
+    
+    return projects[0] if projects else None
 
 
 def save_successful_task(task_data) -> None:

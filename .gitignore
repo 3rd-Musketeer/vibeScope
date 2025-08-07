@@ -190,15 +190,14 @@ frontend/out/
 *.bak
 *.backup
 
-server/dev_docs/
-dev_docs/
-legacy/
-
 # Claude Code
 .claude/
 
 # Development files
-server/scripts/
 server/static/
+dev_docs/
+scripts/
+archive/
+legacy/
 
 *.ipynb

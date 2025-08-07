@@ -1,10 +1,13 @@
+import secrets
 import uuid
+import logging
 from datetime import datetime
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from api_schema import (
     ExtractedContentResponse,
@@ -19,6 +22,7 @@ from api_schema import (
 from db import (
     delete_project_data,
     export_project_data,
+    get_project_by_token,
     get_project_stats,
     get_projects,
     get_successful_tasks_by_project,
@@ -29,6 +33,7 @@ from rag_service import query_project_notes
 from task_queue import TaskQueue
 
 app = FastAPI(title="Social Media Research Assistant", version="0.1.0")
+security = HTTPBearer(auto_error=False)
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,8 +48,33 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 task_queue = TaskQueue()
 
 
+def verify_project_token(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+    """Dependency to verify project auth token"""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    
+    token = credentials.credentials
+    project = get_project_by_token(token)
+    
+    if not project:
+        raise HTTPException(status_code=401, detail="Invalid project token")
+    
+    return project
+
+
+# Add new endpoint for extension to get project info by token
+@app.get("/projects/by-token/{token}")
+async def get_project_by_token_endpoint(token: str) -> dict[str, str]:
+    """Get project info by token - for extension validation"""
+    project = get_project_by_token(token)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    return {"id": project["id"], "name": project["name"]}
+
+
 @app.post("/tasks", response_model=TaskResponse)
-async def create_task(request: TaskCreateRequest) -> TaskResponse:
+async def create_task(request: TaskCreateRequest, project: dict = Depends(verify_project_token)) -> TaskResponse:
     if not request.url and not request.html:
         raise HTTPException(status_code=400, detail="either url or html is required")
 
@@ -71,6 +101,7 @@ async def get_tasks_by_project(
     status: Optional[str] = Query(
         None, description="Filter by status: pending, processing, failed"
     ),
+    project: dict = Depends(verify_project_token)
 ) -> list[TaskResponse]:
     if not project_id:
         raise HTTPException(status_code=400, detail="project_id is required")
@@ -111,7 +142,7 @@ async def get_tasks_by_project(
 
 
 @app.post("/tasks/{task_id}/retry")
-async def retry_task(task_id: str) -> dict[str, str]:
+async def retry_task(task_id: str, project: dict = Depends(verify_project_token)) -> dict[str, str]:
     if not task_id:
         raise HTTPException(status_code=400, detail="task_id is required")
 
@@ -123,7 +154,7 @@ async def retry_task(task_id: str) -> dict[str, str]:
 
 
 @app.post("/tasks/{task_id}/delete")
-async def delete_task(task_id: str) -> dict[str, str]:
+async def delete_task(task_id: str, project: dict = Depends(verify_project_token)) -> dict[str, str]:
     if not task_id:
         raise HTTPException(status_code=400, detail="task_id is required")
 
@@ -146,9 +177,12 @@ async def create_project(request: ProjectCreateRequest) -> ProjectSchema:
         raise HTTPException(status_code=400, detail="name is required")
 
     project_id = str(uuid.uuid4())
+    auth_token = secrets.token_urlsafe(32)  # Generate auth token
+    
     project_data = {
         "id": project_id,
         "name": request.name,
+        "auth_token": auth_token,
         "created_at": datetime.now().isoformat(),
     }
 
@@ -157,12 +191,13 @@ async def create_project(request: ProjectCreateRequest) -> ProjectSchema:
     return ProjectSchema(
         id=project_id,
         name=request.name,
+        auth_token=auth_token,
         created_at=datetime.fromisoformat(project_data["created_at"]),
     )
 
 
 @app.get("/projects/{project_id}/stats", response_model=ProjectStatsResponse)
-async def get_project_statistics(project_id: str) -> ProjectStatsResponse:
+async def get_project_statistics(project_id: str, project: dict = Depends(verify_project_token)) -> ProjectStatsResponse:
     if not project_id:
         raise HTTPException(status_code=400, detail="project_id is required")
 
@@ -189,7 +224,7 @@ async def get_project_statistics(project_id: str) -> ProjectStatsResponse:
 
 
 @app.get("/projects/{project_id}/export")
-async def export_project(project_id: str) -> dict[str, Any]:
+async def export_project(project_id: str, project: dict = Depends(verify_project_token)) -> dict[str, Any]:
     if not project_id:
         raise HTTPException(status_code=400, detail="project_id is required")
 
@@ -200,7 +235,7 @@ async def export_project(project_id: str) -> dict[str, Any]:
 
 
 @app.delete("/projects/{project_id}")
-async def delete_project(project_id: str) -> dict[str, str]:
+async def delete_project(project_id: str, project: dict = Depends(verify_project_token)) -> dict[str, str]:
     if not project_id:
         raise HTTPException(status_code=400, detail="project_id is required")
 
@@ -214,7 +249,7 @@ async def delete_project(project_id: str) -> dict[str, str]:
 @app.get(
     "/projects/{project_id}/content", response_model=list[ExtractedContentResponse]
 )
-async def get_extracted_content(project_id: str) -> list[ExtractedContentResponse]:
+async def get_extracted_content(project_id: str, project: dict = Depends(verify_project_token)) -> list[ExtractedContentResponse]:
     """Get extracted content for a project with full nested structure"""
     if not project_id:
         raise HTTPException(status_code=400, detail="project_id is required")
@@ -313,12 +348,12 @@ async def get_extracted_content(project_id: str) -> list[ExtractedContentRespons
 
 
 @app.get("/queue/status")
-async def get_queue_status() -> dict[str, int]:
+async def get_queue_status(project: dict = Depends(verify_project_token)) -> dict[str, int]:
     return task_queue.get_queue_stats()
 
 
 @app.post("/query", response_model=QueryResponse)
-async def query_project(request: QueryRequest) -> QueryResponse:
+async def query_project(request: QueryRequest, project: dict = Depends(verify_project_token)) -> QueryResponse:
     """Query project notes using two-factor RAG pipeline"""
     if not request.project_id:
         raise HTTPException(status_code=400, detail="project_id is required")
@@ -329,12 +364,21 @@ async def query_project(request: QueryRequest) -> QueryResponse:
     return await query_project_notes(request.project_id, request.question)
 
 
+
+
 @app.on_event("startup")
 async def startup_event():
+    # Get logger instance for startup
+    startup_logger = logging.getLogger(__name__)
+    startup_logger.info("Starting up Social Media Research Assistant")
+    
     init_db()
+    startup_logger.info("Database initialized")
+    
+    
     import asyncio
-
     asyncio.create_task(task_queue.start_dispatcher())
+    startup_logger.info("Task queue dispatcher started")
 
 
 if __name__ == "__main__":
@@ -344,7 +388,7 @@ if __name__ == "__main__":
 
     load_dotenv()
 
-    required_env_vars = ["OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL"]
+    required_env_vars = ["OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL", "SYSTEM_AUTH_PASSWORD"]
     missing_vars = [var for var in required_env_vars if not os.getenv(var)]
 
     if missing_vars:
@@ -353,7 +397,10 @@ if __name__ == "__main__":
     print("✓ Environment validation passed")
 
     init_db()
-    print("✓ Database initialized")
+    init_auth_tables()
+    main_logger = logging.getLogger(__name__)
+    main_logger.info("✓ Database and auth tables initialized")
+    print("✓ Database and auth tables initialized")
 
     import asyncio
 

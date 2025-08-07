@@ -58,16 +58,16 @@ function handlePaste(e) {
   }
 }
 
-// Load saved project key
+// Load saved project token
 async function loadSavedKey() {
   try {
-    const result = await chrome.storage.local.get(['projectKey']);
-    if (result.projectKey) {
-      document.getElementById('project-key').value = result.projectKey;
-      validateKey(result.projectKey);
+    const result = await chrome.storage.local.get(['projectToken']);
+    if (result.projectToken) {
+      document.getElementById('project-key').value = result.projectToken;
+      validateKey(result.projectToken);
     }
   } catch (error) {
-    console.error('Failed to load saved key:', error);
+    console.error('Failed to load saved token:', error);
   }
 }
 
@@ -85,57 +85,34 @@ function toggleKeyVisibility() {
   }
 }
 
-// Validate project key
-async function validateKey(key) {
-  if (!key) return resetValidation();
+// Validate project token
+async function validateKey(token) {
+  if (!token) return resetValidation();
   
   try {
-    // Parse key format
-    const decoded = atob(key);
-    const parts = decoded.split('|');
-    
-    if (parts.length !== 3) {
-      throw new Error('Invalid key format');
-    }
-    
-    const [backendUrl, projectId, sessionToken] = parts;
-    
-    if (!backendUrl || !projectId || !sessionToken) {
-      throw new Error('Missing key components');
-    }
-    
-    // Validate with backend
+    // Validate token with backend
     showStatus('Validating...', 'info');
     
-    const headers = {
-      'Content-Type': 'application/json'
-    };
-    
-    // Add auth for non-localhost
-    if (!backendUrl.includes('localhost')) {
-      headers['Authorization'] = `Bearer ${sessionToken}`;
-    }
-    
-    const response = await fetch(`${backendUrl}/projects`, { headers });
+    const response = await fetch(`http://localhost:8000/projects/by-token/${token}`);
     
     if (!response.ok) {
-      throw new Error(`Server error: ${response.status}`);
+      throw new Error('Invalid token');
     }
     
-    const projects = await response.json();
-    const projectExists = projects.some(p => p.id === projectId);
+    const project = await response.json();
     
-    if (!projectExists) {
-      throw new Error('Project not found');
-    }
-    
-    // Success - save and enable button
+    // Success - save token and project info
     await chrome.storage.local.set({ 
-      projectKey: key,
-      config: { backendUrl, projectId, sessionToken }
+      projectToken: token,
+      config: { 
+        backendUrl: 'http://localhost:8000',
+        projectId: project.id, 
+        projectName: project.name,
+        token: token
+      }
     });
     
-    showStatus('✓ Connected successfully', 'success');
+    showStatus(`✓ Connected to "${project.name}"`, 'success');
     enableStartButton(true);
     
   } catch (error) {

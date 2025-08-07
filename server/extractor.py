@@ -32,7 +32,7 @@ class InstructorExtractor:
             mode=instructor.Mode.JSON,
         )
 
-        self.fast_model = "google/gemini-2.5-flash-lite"
+        self.fast_model = "google/gemini-2.5-flash"
         self.normal_model = "google/gemini-2.5-flash"
 
     def get_base_url(self, url: str) -> str:

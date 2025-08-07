@@ -22,13 +22,9 @@ async function submitContent(htmlContent, url = null) {
     }
     
     const headers = {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.token}`
     };
-    
-    // Add auth header for non-localhost
-    if (!config.backendUrl.includes('localhost')) {
-      headers['Authorization'] = `Bearer ${config.sessionToken}`;
-    }
     
     const response = await fetch(`${config.backendUrl}/tasks`, {
       method: 'POST',

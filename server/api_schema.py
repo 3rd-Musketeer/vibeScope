@@ -72,6 +72,7 @@ class TaskResponse(BaseModel):
 class ProjectSchema(BaseModel):
     id: str = Field(description="Unique project identifier")
     name: str = Field(description="Project name")
+    auth_token: str = Field(description="Authentication token for project access")
     created_at: datetime = Field(description="Project creation timestamp")
 
 
