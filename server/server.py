@@ -8,7 +8,6 @@ from typing import Any, Optional
 import jwt
 
 from fastapi import Depends, FastAPI, HTTPException, Header, Query
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
 
@@ -40,13 +39,7 @@ from task_queue import TaskQueue
 app = FastAPI(title="vibeScope", version="0.1.0")
 security = HTTPBearer(auto_error=False)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS is handled by nginx proxy, no need for FastAPI CORS middleware
 
 # Create static directory if it doesn't exist
 static_dir = "static"
