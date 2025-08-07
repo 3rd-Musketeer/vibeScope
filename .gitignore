@@ -199,6 +199,9 @@ nginx/*.crt
 # Claude Code
 .claude/
 
+# Test files with credentials
+server/test_auth.py
+
 # Development files
 server/static/
 dev_docs/
